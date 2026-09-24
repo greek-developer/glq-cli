@@ -3,15 +3,40 @@
 A profile is one named Graylog target — a cluster, an environment, or a set of
 credentials. Switching `--profile` changes the target and nothing else.
 
-## Profile fields `[not-yet-implemented]`
+## The config file `[not-yet-implemented]`
 
-Profiles live in `~/.grdev.glq-cli/config.json`, alongside `current_profile`.
+Everything `glq` is configured with lives in **one file**, `~/.grdev.glq-cli/config.json`:
+profiles, their tokens, and stored queries ([stored-queries.md](stored-queries.md)).
+
+```json
+{
+  "current_profile": "staging",
+  "max_limit": 10000,
+  "mask_fields": ["email", "phone", "username", "customer_id", "user_id", "ip", "card*"],
+  "mask_salt": "…generated on first use…",
+  "queries": { "api-5xx": { "query": "source:api-gateway AND http_status:>=500", "range": "15m" } },
+  "profiles": {
+    "staging": {
+      "url": "https://graylog.staging.example.internal",
+      "token": "…",
+      "queries": { "svc-errors": { "query": "source:{{service}} AND level:<=3", "range": "1h" } }
+    }
+  }
+}
+```
+
+The file holds tokens in plaintext, so its permissions are **owner-only**: `glq` creates
+the folder `0700` and the file `0600` on macOS and Linux, and restricts the file's ACL to
+the current user on Windows. On every load `glq` checks this and refuses to run — exit
+code `1`, with the fix — if the file is readable by anyone else.
+
+## Profile fields `[not-yet-implemented]`
 
 | Field | Default | Meaning |
 |---|---|---|
-| `name` | — (required) | Unique profile name |
 | `url` | — (required) | Graylog base URL |
-| `auth_method` | `token` | `token` (keyring or `GLQ_TOKEN`) or `token_command` |
+| `auth_method` | `token` | `token` (stored in this file, or `GLQ_TOKEN`) or `token_command` |
+| `token` | — | The access token — written by `profile set-token`, never printed |
 | `token_command` | — | Shell command that prints the token, e.g. a password-manager CLI |
 | `verify_tls` | `true` | TLS certificate verification |
 | `ca_bundle` | — | Path to a custom CA bundle |
@@ -22,9 +47,9 @@ Profiles live in `~/.grdev.glq-cli/config.json`, alongside `current_profile`.
 | `default_limit` | `100` | Result count used when a search gives none |
 | `default_fields` | narrow built-in set | Fields used when a search gives none |
 | `mask_fields` | `[]` | Extra field names to mask — see [privacy.md](privacy.md) |
+| `queries` | `{}` | Stored queries that belong to this profile only |
 
-A profile never holds a token. A config file containing a token-like key is rejected on
-load.
+The profile's name is its key under `profiles`.
 
 ## Commands `[not-yet-implemented]`
 
@@ -32,11 +57,11 @@ load.
 |---|---|
 | `glq profile add <name> --url <url> [options]` | Adds a profile |
 | `glq profile list` | Lists profiles, marking the current one |
-| `glq profile show <name>` | Prints the profile's settings and **where** its token comes from (keyring, env, or command) — never the token |
+| `glq profile show <name>` | Prints the profile's settings and **where** its token comes from (config, env, or command) — never the token |
 | `glq profile use <name>` | Sets `current_profile` |
-| `glq profile remove <name>` | Removes the profile and its keyring entry |
+| `glq profile remove <name>` | Removes the profile, its token and its profile-only queries, after confirmation (`--yes` skips it) |
 | `glq profile test [<name>]` | Checks connectivity and authentication, and prints the Graylog server version and auth status |
-| `glq profile set-token <name>` | Prompts for the token with hidden input and stores it in the keyring |
+| `glq profile set-token <name>` | Prompts for the token with hidden input and writes it to the profile's `token` |
 
 ## Profile resolution `[not-yet-implemented]`
 
@@ -57,10 +82,10 @@ username, the literal `token` as the password. Tokens are created in Graylog und
 The token is the first of:
 
 1. `GLQ_TOKEN` — for CI
-2. The OS keyring — service `grdev.glq-cli`, account = profile name
-3. The output of `token_command`
+2. The profile's `token` in `config.json`
+3. The output of the profile's `token_command`
 
-Plaintext tokens in files are not supported. Username/password login is not supported.
+Username/password login is not supported.
 
 The user documentation recommends a dedicated, least-privilege Graylog user that can read
 only the streams it needs — never an admin account's token.

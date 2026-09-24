@@ -34,7 +34,7 @@ one stream is an error that lists the candidates. With no `--stream`, the profil
 | `--limit <n>` | Profile `default_limit` (100) |
 | `--sort <field>:asc\|desc` | `timestamp:desc` |
 
-`--limit` has a hard maximum — `max_limit` in the config file, default 10,000. A larger
+`--limit` has a hard maximum — `max_limit` in `config.json`, default 10,000. A larger
 value is rejected with exit code `1`.
 
 ## Output `[not-yet-implemented]`

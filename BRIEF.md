@@ -39,7 +39,6 @@ run.
 |---|---|
 | `GLQ_PROFILE` | Selects the profile when `--profile` is absent |
 | `GLQ_TOKEN` | Supplies the token directly — for CI |
-| `GLQ_QUERIES_FILE` | Overrides the stored-queries file path |
 
 ## Layout
 
@@ -58,16 +57,12 @@ run.
 |---|---|
 | `PackageId` | `grdev.glq-cli` |
 | `ToolCommandName` | `glq` |
-| Profile folder | `~/.grdev.glq-cli/` — `config.json`, `queries.json`, `cache/` |
-| Keyring entry | Service `grdev.glq-cli`, account = profile name |
+| Profile folder | `~/.grdev.glq-cli/` — `config.json` (profiles, tokens, queries), `cache/` |
 
 - **CLI parsing:** `System.CommandLine`. **JSON:** `System.Text.Json` with
   `JsonNamingPolicy.SnakeCaseLower`, so file keys read `verify_tls`, `default_range`.
 - **HTTP:** `HttpClient` via `IHttpClientFactory`; one typed client, never a generic one —
   see [ARCHITECTURE.md](docs/ARCHITECTURE.md).
-- **Keyring:** no built-in cross-platform API exists. The dependency (or per-OS
-  implementation behind one interface) is **not chosen yet** — record it here with its
-  reason when it is.
 - **Dependencies:** `RestorePackagesWithLockFile` is on and `packages.lock.json` is
   committed; CI restores with `--locked-mode` and runs
   `dotnet list package --vulnerable --include-transitive`, failing on any hit.
@@ -89,7 +84,9 @@ skill frontmatter. Validate against staging before pointing the tool at producti
 
 | Never | Because |
 |---|---|
-| Write a token to disk in plaintext — config, cache, queries file, anywhere | Tokens live only in the keyring, `GLQ_TOKEN`, or `token_command` output |
+| Write a token anywhere but `config.json` | It is the one owner-only file that holds secrets |
+| Create or accept `config.json` readable by anyone but its owner | It holds plaintext tokens |
+| Keep config or secrets outside `~/.grdev.glq-cli/` — no keyring, no second file, no path override | One folder holds all of it |
 | Let a token reach any output — logs, errors, `--raw`, debug HTTP traces, crash traces | Redact `Authorization` everywhere; the token-leak test enforces it |
 | Output an unmasked card-like number (Luhn-valid 13–19 digits) | Not even with `--no-mask` |
 | Cache message content locally | Only stream metadata and the server version may be cached |

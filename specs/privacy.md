@@ -5,10 +5,11 @@ Everything here is a v1 requirement.
 
 ## Secrets `[not-yet-implemented]`
 
-Tokens come only from the keyring, `GLQ_TOKEN`, or `token_command` output. They never
-appear in files `glq` writes, or in any output: results, `--raw`, errors, logs, verbose or
-HTTP-debug traces, or crash traces. The `Authorization` header is redacted wherever
-requests are shown.
+Tokens come only from `GLQ_TOKEN`, the profile's `token` in `config.json`, or
+`token_command` output. `config.json` is the one file that holds them, and it is owner-only
+([profiles.md](profiles.md)). Tokens never appear in any other file `glq` writes, or in any
+output: results, `--raw`, `query export`, errors, logs, verbose or HTTP-debug traces, or
+crash traces. The `Authorization` header is redacted wherever requests are shown.
 
 ## TLS `[not-yet-implemented]`
 
@@ -20,13 +21,13 @@ stderr on every run. A custom CA bundle is supported through `ca_bundle`.
 Output is masked by default, in every format, unless `--no-mask` is given:
 
 - email addresses and phone numbers, detected by pattern;
-- fields named in the built-in list — `email`, `phone`, `username`, `customer_id`,
-  `user_id`, `ip`, `card*` — which is configurable in `config.json`;
+- fields named in the top-level `mask_fields` of `config.json` — by default `email`,
+  `phone`, `username`, `customer_id`, `user_id`, `ip`, `card*`;
 - fields named in the profile's `mask_fields`.
 
 Masks are deterministic pseudonyms from a salted hash — e.g. `cust_…a91f` — so the same
 value masks the same way across rows and correlation still works. The salt is generated on
-first use and kept in `~/.grdev.glq-cli/`.
+first use and kept as `mask_salt` in `config.json`.
 
 **Card numbers are always masked.** Any Luhn-valid sequence of 13–19 digits is masked,
 `--no-mask` notwithstanding.

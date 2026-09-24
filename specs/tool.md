@@ -22,7 +22,7 @@ The Graylog server version is reported by `glq profile test`, not here.
 | Command | Does |
 |---|---|
 | `glq config path` | Prints the resolved path of `config.json` and nothing else |
-| `glq config edit` | Opens `config.json` in `$VISUAL`, then `$EDITOR`, then `notepad` / `vi`; creates a template with the right shape first if the file is missing |
+| `glq config edit` | Opens `config.json` in `$VISUAL`, then `$EDITOR`, then `notepad` / `vi`; creates a template with the right shape first — owner-only — if the file is missing |
 
 ## `glq skill` `[not-yet-implemented]`
 
