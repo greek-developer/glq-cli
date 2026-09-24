@@ -1,0 +1,19 @@
+# Output
+
+## Formats `[not-yet-implemented]`
+
+`-o/--output` selects the format for search results, stored-query runs and listings.
+
+| Format | Default when | Shape |
+|---|---|---|
+| `table` | stdout is a terminal | Aligned columns of the selected fields |
+| `json` | — | One JSON array |
+| `jsonl` | stdout is redirected or piped | One JSON object per line |
+| `csv` | — | Header row of the selected fields, then one row per message |
+
+Masking ([privacy.md](privacy.md)) applies identically to every format.
+
+## Streams of output `[not-yet-implemented]`
+
+Results go to stdout; errors, warnings and notices go to stderr, in plain language. Zero
+results is success. Output is UTF-8 on every platform.
