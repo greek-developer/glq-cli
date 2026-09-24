@@ -1,0 +1,8 @@
+# Line endings — see AGENTS.md > Coding conventions.
+# Text files are stored LF in the repo and checked out CRLF on every platform,
+# regardless of each clone's core.autocrlf setting.
+* text=auto eol=crlf
+
+# The one exception is scripts `sh` executes: a hook checked out with CRLF dies
+# with `bad interpreter: /bin/sh^M`. Pin such files to LF when they are added:
+# scripts/.githooks/** text eol=lf
