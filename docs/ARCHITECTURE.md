@@ -9,8 +9,8 @@ One application project, `src/Glq.Cli`, a .NET global tool. Namespaces follow fo
 | Folder / namespace | Holds |
 |---|---|
 | `Commands` | `System.CommandLine` definitions — `profile`, `search`, `query`, `streams`, `config`, `version`, `skill` |
-| `Configuration` | `config.json` and `queries.json` models, loading, validation, and the `~/.grdev.glq-cli/` paths |
-| `Auth` | Token resolution — env, keyring, `token_command` — behind `ITokenSource` |
+| `Configuration` | The `config.json` model — profiles, tokens, shared and profile-only queries — loading, validation, owner-only permission checks, and the `~/.grdev.glq-cli/` paths |
+| `Auth` | Token resolution — `GLQ_TOKEN`, `config.json`, `token_command` — behind `ITokenSource` |
 | `Client` | The typed Graylog HTTP client: headers, TLS, timeouts, error → exit-code mapping, server-version detection |
 | `Backends` | `ISearchBackend` with `ViewsBackend` and `LegacyBackend` |
 | `Queries` | Stored-query model, `{{param}}` templating, Lucene escaping |

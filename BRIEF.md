@@ -7,7 +7,8 @@ backend, SRE and support engineers. It replaces ad-hoc `curl` calls and the unma
 community CLIs, which target legacy Graylog 2.x–4.x endpoints and have neither profiles nor
 saved queries. Two capabilities define it: **named profiles**, so switching between
 clusters (`dev`, `staging`, `prod`) is one flag, and **stored queries** — named,
-parameterized searches that a team can share through git.
+parameterized searches, shared across profiles or kept to one, and passed
+between people with `query export` / `query import`.
 
 It searches and retrieves log messages and stream metadata, and nothing else. Graylog holds
 customer identifiers and other personal data, so the security and privacy behaviour in
@@ -94,7 +95,7 @@ skill frontmatter. Validate against staging before pointing the tool at producti
 | Add upload, webhook, share or any network output | Results go only to stdout or files the user redirects to |
 | Commit real log data | Test fixtures are synthetic only |
 | Disable TLS verification silently | `--insecure` / `verify_tls = false` warn on every run |
-| Store credentials in a stored-queries file | `query import` rejects files with token-like keys |
+| Put a token in `query export` output | Exports are shared; `query import` rejects files with token-like keys |
 
 ## Decisions
 
@@ -106,9 +107,16 @@ skill frontmatter. Validate against staging before pointing the tool at producti
 - `.editorconfig` and `.gitattributes` are taken from `agentic` until a .NET project exists
   and `dotnet new editorconfig` replaces the former.
 - `glq` is a .NET global tool — `grdev.glq-cli`, command `glq` — not Python or Go.
-- Config and stored queries are JSON (`config.json`, `queries.json`), not TOML.
+- Configuration is JSON, not TOML.
 - All user state lives in `~/.grdev.glq-cli/`, not `$XDG_CONFIG_HOME/glq/`.
-- The keyring service name is `grdev.glq-cli`.
+- One file, `~/.grdev.glq-cli/config.json`, holds all config and secrets: profiles, their
+  tokens, stored queries, masking settings. No OS keyring, no separate queries file, no
+  `--queries-file` / `GLQ_QUERIES_FILE`.
+- Tokens are stored in plaintext; `config.json` is owner-only (`0600`, user-only ACL on
+  Windows) and `glq` refuses to run when it is not.
+- Stored queries are shared (top-level `queries`) or profile-only
+  (`profiles.<name>.queries`); profile-only wins on a name clash. People share queries via
+  `query export` / `query import`.
 - `glq version` prints the standard CLI version block only; the server version is reported
   by `glq profile test`.
 - `glq` carries the standard `config path | edit` and `skill` commands.

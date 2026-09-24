@@ -12,8 +12,9 @@
 - [ ] `profile add/use/test` works against a local Graylog; `test` reports server version and auth status — specs: profiles
 - [ ] Switching `--profile` changes the target cluster and nothing else — specs: profiles
 - [ ] Ad-hoc search with relative and absolute ranges, stream names, fields, limit, and all four output formats — specs: search, output
-- [ ] Stored queries: save, list, show, edit, run with params and overrides, export, import; missing params give a clear error — specs: stored-queries
-- [ ] Tokens never on disk in plaintext or in any output, proven by a test that greps all captured output — specs: privacy
+- [ ] Stored queries, shared and profile-only: save, list, show, edit, run with params and overrides, export, import; missing params give a clear error — specs: stored-queries
+- [ ] `config.json` is created owner-only, and `glq` refuses to run when it is readable by others — specs: profiles
+- [ ] Tokens never in any file but `config.json`, or in any output, proven by a test that greps all captured output — specs: privacy
 - [ ] Masking on by default; card-like numbers masked even with `--no-mask` — specs: privacy
 - [ ] Production notice shown; large production runs need confirmation — specs: privacy
 - [ ] Views API used when available, legacy fallback on 404, both paths tested — specs: search
@@ -29,7 +30,5 @@
 
 - [ ] Which Graylog version(s) run here? Decides whether the legacy fallback is needed at all
 - [ ] Publish to nuget.org or an internal feed?
-- [ ] Should shared stored-query files live in a specific GitLab repository?
 - [ ] Are users external (SSO) accounts? Then access tokens for external users must be enabled
 - [ ] Which log-schema field names belong on the default masking list?
-- [ ] Which keyring dependency or per-OS implementation to use
