@@ -36,7 +36,7 @@ public class ConfigStoreTests
     {
         using var host = new TestHost();
         var config = new GlqConfig { MaskSalt = "salt" };
-        config.QueriesOrEmpty["errors"] = new Queries.StoredQuery { Query = "level:3", Tags = ["ops"] };
+        config.QueriesOrEmpty["errors"] = new Glq.Cli.Queries.StoredQuery { Query = "level:3", Tags = ["ops"] };
 
         host.Store.Save(config);
         var loaded = host.Store.Load();

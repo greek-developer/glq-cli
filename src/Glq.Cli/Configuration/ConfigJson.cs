@@ -16,5 +16,7 @@ internal static class ConfigJson
         ReadCommentHandling = JsonCommentHandling.Skip,
         AllowTrailingCommas = true,
         WriteIndented = true,
+        // These files are read by people, not embedded in HTML: keep '>=', '+' and non-ASCII readable.
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
 }

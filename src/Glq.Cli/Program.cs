@@ -63,6 +63,7 @@ internal static class Program
         GlobalOptions.Verbose,
         SearchCommand.Create(context),
         ProfileCommand.Create(context),
+        QueryCommand.Create(context),
         StreamsCommand.Create(context),
         ConfigCommand.Create(context),
         VersionCommand.Create(context),

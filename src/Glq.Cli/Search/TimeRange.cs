@@ -6,6 +6,9 @@ namespace Glq.Cli.Search;
 /// <summary>A search time range - relative to now, or absolute. See specs/search.md.</summary>
 internal abstract partial record TimeRange
 {
+    /// <summary>A placeholder fallback for validating a range that is known to be explicit.</summary>
+    internal const string DefaultRange = "5m";
+
     internal sealed record Relative(TimeSpan Span) : TimeRange;
 
     internal sealed record Absolute(DateTimeOffset From, DateTimeOffset To) : TimeRange;
