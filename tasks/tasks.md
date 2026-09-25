@@ -9,16 +9,16 @@
 
 ## v1 acceptance
 
-- [ ] `profile add/use/test` works against a local Graylog; `test` reports server version and auth status — specs: profiles
-- [ ] Switching `--profile` changes the target cluster and nothing else — specs: profiles
-- [ ] Ad-hoc search with relative and absolute ranges, stream names, fields, limit, and all four output formats — specs: search, output
-- [ ] Stored queries, shared and profile-only: save, list, show, edit, run with params and overrides, export, import; missing params give a clear error — specs: stored-queries
-- [ ] `config.json` is created owner-only, and `glq` refuses to run when it is readable by others — specs: profiles
-- [ ] Tokens never in any file but `config.json`, or in any output, proven by a test that greps all captured output — specs: privacy
-- [ ] Masking on by default; card-like numbers masked even with `--no-mask` — specs: privacy
-- [ ] Production notice shown; large production runs need confirmation — specs: privacy
-- [ ] Views API used when available, legacy fallback on 404, both paths tested — specs: search
-- [ ] `version`, `config path|edit` and `skill` behave per the standard — specs: tool
+- [ ] `profile add/use/test` works against a local Graylog; `test` reports server version and auth status — specs: profiles — covered by `tests/Glq.Cli.IntegrationTests`; not yet run, needs Docker (`scripts/itest.ps1`)
+- [x] Switching `--profile` changes the target cluster and nothing else — specs: profiles
+- [x] Ad-hoc search with relative and absolute ranges, stream names, fields, limit, and all four output formats — specs: search, output
+- [x] Stored queries, shared and profile-only: save, list, show, edit, run with params and overrides, export, import; missing params give a clear error — specs: stored-queries
+- [x] `config.json` is created owner-only, and `glq` refuses to run when it is readable by others — specs: profiles
+- [x] Tokens never in any file but `config.json`, or in any output, proven by a test that greps all captured output — specs: privacy
+- [x] Masking on by default; card-like numbers masked even with `--no-mask` — specs: privacy
+- [x] Production notice shown; large production runs need confirmation — specs: privacy
+- [x] Views API used when available, legacy fallback on 404, both paths tested — specs: search
+- [x] `version`, `config path|edit` and `skill` behave per the standard — specs: tool
 
 ## v1.1 (stretch)
 

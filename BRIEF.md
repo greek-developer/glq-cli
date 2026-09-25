@@ -22,24 +22,24 @@ ingestion; a GUI or TUI; username/password login.
 
 ## Build & run
 
-Nothing is built yet. Once the solution exists:
-
 ```powershell
 dotnet build                                   # build
 dotnet run --project src/Glq.Cli -- <args>     # run locally
 dotnet test tests/Glq.Cli.UnitTests            # all tests that need no services
+./scripts/setup.ps1                            # once per clone - enables the git hooks
 ./scripts/itest.ps1                            # integration tests — starts Graylog in docker first
 ```
 
 Integration tests need Docker. `scripts/itest.ps1` starts Graylog, OpenSearch and MongoDB
 from the compose file in `tests/Glq.Cli.IntegrationTests`, seeds synthetic messages, and
-runs the suite. They are opt-in and never part of `dotnet test` on the solution's default
-run.
+runs the suite. They are opt-in: on a plain `dotnet test` of the solution they are skipped,
+because they run only when `GLQ_ITEST_URL` and `GLQ_ITEST_TOKEN` are set.
 
 | Environment variable | Effect |
 |---|---|
 | `GLQ_PROFILE` | Selects the profile when `--profile` is absent |
 | `GLQ_TOKEN` | Supplies the token directly — for CI |
+| `GLQ_ITEST_URL`, `GLQ_ITEST_TOKEN` | Set by `scripts/itest.ps1`; enable the integration tests |
 
 ## Layout
 
@@ -126,3 +126,18 @@ skill frontmatter. Validate against staging before pointing the tool at producti
   lives in `docs/`; `README.md` stays a plain-language front door that links to it.
 - Helper scripts, including the integration-test runner, are PowerShell; no `Makefile`.
 - CI runs on Linux, macOS and Windows.
+
+### 2026-09-25
+
+- v1 is implemented; the version line starts at `0.1`.
+- The production confirmation applies to ad-hoc `search` as well as `query run`, whenever
+  the effective limit is above the top-level `confirm_limit` (default 1,000).
+- `glq config protect` restores owner-only permissions on `config.json`; it is the fix
+  named when glq refuses a readable file.
+- The home directory comes from `USERPROFILE` (Windows) or `HOME`, falling back to the
+  platform profile folder.
+- Unknown keys in `config.json` and in imported queries are errors.
+- Global options are `--profile`, `--verbose` (redacted HTTP trace) and `--insecure`.
+- Masking pseudonyms carry 8 hex characters of an HMAC-SHA256 over the value.
+- Integration tests live in the solution and skip unless `GLQ_ITEST_URL` and
+  `GLQ_ITEST_TOKEN` are set; they run the built `glq` with an isolated home directory.

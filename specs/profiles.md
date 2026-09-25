@@ -3,7 +3,7 @@
 A profile is one named Graylog target — a cluster, an environment, or a set of
 credentials. Switching `--profile` changes the target and nothing else.
 
-## The config file `[not-yet-implemented]`
+## The config file
 
 Everything `glq` is configured with lives in **one file**, `~/.grdev.glq-cli/config.json`:
 profiles, their tokens, and stored queries ([stored-queries.md](stored-queries.md)).
@@ -12,6 +12,7 @@ profiles, their tokens, and stored queries ([stored-queries.md](stored-queries.m
 {
   "current_profile": "staging",
   "max_limit": 10000,
+  "confirm_limit": 1000,
   "mask_fields": ["email", "phone", "username", "customer_id", "user_id", "ip", "card*"],
   "mask_salt": "…generated on first use…",
   "queries": { "api-5xx": { "query": "source:api-gateway AND http_status:>=500", "range": "15m" } },
@@ -27,10 +28,23 @@ profiles, their tokens, and stored queries ([stored-queries.md](stored-queries.m
 
 The file holds tokens in plaintext, so its permissions are **owner-only**: `glq` creates
 the folder `0700` and the file `0600` on macOS and Linux, and restricts the file's ACL to
-the current user on Windows. On every load `glq` checks this and refuses to run — exit
-code `1`, with the fix — if the file is readable by anyone else.
+the current user on Windows. It writes the file atomically, owner-only from the moment it
+holds content. On every load `glq` checks this and refuses to run — exit code `1` — if the
+file is readable by anyone else, naming the fix: `glq config protect`.
 
-## Profile fields `[not-yet-implemented]`
+A misspelt or unknown key is a configuration error, not a silently ignored setting.
+
+| Top-level field | Default | Meaning |
+|---|---|---|
+| `current_profile` | — | The profile used when neither `--profile` nor `GLQ_PROFILE` is given |
+| `max_limit` | `10000` | The hard maximum for `--limit` |
+| `confirm_limit` | `1000` | Above this `--limit`, a production run needs confirmation — see [privacy.md](privacy.md) |
+| `mask_fields` | see [privacy.md](privacy.md) | Field names masked on every profile |
+| `mask_salt` | generated | The masking salt |
+| `queries` | `{}` | Shared stored queries |
+| `profiles` | `{}` | The profiles, by name |
+
+## Profile fields
 
 | Field | Default | Meaning |
 |---|---|---|
@@ -51,19 +65,19 @@ code `1`, with the fix — if the file is readable by anyone else.
 
 The profile's name is its key under `profiles`.
 
-## Commands `[not-yet-implemented]`
+## Commands
 
 | Command | Does |
 |---|---|
-| `glq profile add <name> --url <url> [options]` | Adds a profile |
+| `glq profile add <name> --url <url> [options]` | Adds a profile — the first one added becomes current. Options set the fields above: `--production`, `--no-verify-tls`, `--ca-bundle`, `--timeout-seconds`, `--token-command`, `--default-range`, `--default-stream` (repeatable), `--default-limit`, `--default-fields`, `--mask-field` (repeatable); `--use` makes it current, `--force` replaces an existing profile. A plain `http` URL is accepted with a warning that the token crosses the network unencrypted |
 | `glq profile list` | Lists profiles, marking the current one |
 | `glq profile show <name>` | Prints the profile's settings and **where** its token comes from (config, env, or command) — never the token |
 | `glq profile use <name>` | Sets `current_profile` |
-| `glq profile remove <name>` | Removes the profile, its token and its profile-only queries, after confirmation (`--yes` skips it) |
-| `glq profile test [<name>]` | Checks connectivity and authentication, and prints the Graylog server version and auth status |
-| `glq profile set-token <name>` | Prompts for the token with hidden input and writes it to the profile's `token` |
+| `glq profile remove <name>` | Removes the profile, its token and its profile-only queries, after confirmation (`--yes` skips it; without a terminal to ask, `--yes` is required) |
+| `glq profile test [<name>]` | Checks connectivity and authentication, and prints the Graylog server version and auth status. A 403 on the system endpoint still means the token was accepted: it reports `auth: ok` with the version unknown |
+| `glq profile set-token <name>` | Prompts for the token with hidden input and writes it to the profile's `token`; with stdin redirected, reads one line from it |
 
-## Profile resolution `[not-yet-implemented]`
+## Profile resolution
 
 The active profile is the first of:
 
@@ -73,7 +87,7 @@ The active profile is the first of:
 
 If none is set, the command fails with exit code `1` and says how to select a profile.
 
-## Authentication `[not-yet-implemented]`
+## Authentication
 
 Requests authenticate with a Graylog access token over HTTP Basic: the token as the
 username, the literal `token` as the password. Tokens are created in Graylog under
