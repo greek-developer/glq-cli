@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [ develop ]
+  pull_request:
+    branches: [ develop ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0   # Nerdbank.GitVersioning computes the patch from git height
+
+      - name: Setup Build Environment
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore (locked)
+        run: dotnet restore --locked-mode
+
+      - name: Format Check
+        run: dotnet format grdev.glq-cli.slnx --verify-no-changes --no-restore
+
+      - name: Build (warnings as errors)
+        run: dotnet build -c Release --no-restore
+
+      - name: Unit Tests
+        run: dotnet test tests/Glq.Cli.UnitTests -c Release --no-build
+
+      - name: Vulnerability Scan
+        shell: pwsh
+        run: |
+          $report = dotnet list grdev.glq-cli.slnx package --vulnerable --include-transitive 2>&1 | Out-String
+          Write-Host $report
+          if ($LASTEXITCODE -ne 0) { throw 'dotnet list package failed.' }
+          if ($report -match 'has the following vulnerable packages') { throw 'Vulnerable packages found.' }

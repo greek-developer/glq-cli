@@ -1,0 +1,19 @@
+#!/bin/sh
+# Refuse a commit whose C# is not formatted. Switchable, per clone:
+#   git config glq.hooks.format false
+if [ "$(git config --bool --get glq.hooks.format)" = "false" ]; then
+    echo "  skipped - enable with: git config glq.hooks.format true"
+    exit 0
+fi
+
+# Only worth the cost when C# or build files are staged.
+if ! git diff --cached --name-only | grep -Eq '\.(cs|csproj|props|slnx|editorconfig)$'; then
+    exit 0
+fi
+
+dotnet format grdev.glq-cli.slnx --verify-no-changes --verbosity quiet
+status=$?
+if [ $status -ne 0 ]; then
+    echo "  unformatted code - run: dotnet format"
+fi
+exit $status

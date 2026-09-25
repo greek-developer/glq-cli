@@ -1,0 +1,18 @@
+#!/bin/sh
+# The subject must read as "If applied, this commit will ..." - lowercase imperative verb.
+subject="$(head -n 1 "$1")"
+
+case "$subject" in
+    fixup!*|squash!*|Merge*|Revert*) exit 0 ;;
+esac
+
+if ! printf '%s' "$subject" | grep -Eq '^[a-z]'; then
+    echo "  commit subject must start with a lowercase imperative verb: '$subject'"
+    exit 1
+fi
+
+if printf '%s' "$subject" | grep -Eq '\.$'; then
+    echo "  commit subject must not end with a period: '$subject'"
+    exit 1
+fi
+exit 0

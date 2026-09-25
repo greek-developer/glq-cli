@@ -1,0 +1,12 @@
+#!/bin/sh
+# Run every script in pre-commit.d/ in filename order; report all failures.
+dir="$(dirname "$0")/pre-commit.d"
+[ -d "$dir" ] || exit 0
+
+status=0
+for hook in "$dir"/*; do
+    [ -x "$hook" ] || continue
+    echo "→ $(basename "$hook")"
+    "$hook" "$@" || status=1
+done
+exit $status
