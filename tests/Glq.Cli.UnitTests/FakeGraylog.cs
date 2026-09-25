@@ -39,7 +39,7 @@ internal sealed class FakeGraylog : HttpMessageHandler
 
         var route = _routes.LastOrDefault(r => r.Method == request.Method && r.Path == request.RequestUri!.AbsolutePath);
         return route.Respond is null
-            ? new HttpResponseMessage(HttpStatusCode.NotFound) { Content = new StringContent("{\"message\":\"not found\"}") }
+            ? new HttpResponseMessage(HttpStatusCode.NotFound) { Content = new StringContent(string.Empty) }
             : route.Respond(request);
     }
 }

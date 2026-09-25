@@ -33,7 +33,10 @@ internal sealed class GraylogClient(HttpClient http)
             : [];
     }
 
-    /// <summary><c>POST /api/views/search/messages</c> - the preferred search. <c>null</c> on 404.</summary>
+    /// <summary>
+    /// <c>POST /api/views/search/messages</c> - the preferred search. <c>null</c> when the
+    /// endpoint does not exist (a 404 that is not a Graylog API error).
+    /// </summary>
     internal async Task<JsonNode?> SearchMessagesAsync(JsonObject request, CancellationToken cancellationToken)
     {
         try
@@ -41,9 +44,13 @@ internal sealed class GraylogClient(HttpClient http)
             return await SendAsync(HttpMethod.Post, "api/views/search/messages", JsonContent.Create(request), cancellationToken)
                 .ConfigureAwait(false);
         }
-        catch (NotFoundException)
+        catch (NotFoundException notFound) when (notFound.ApiMessage is null)
         {
             return null;
+        }
+        catch (NotFoundException notFound)
+        {
+            throw GlqException.Api($"Graylog returned 404: {notFound.ApiMessage}");
         }
     }
 
@@ -116,7 +123,7 @@ internal sealed class GraylogClient(HttpClient http)
                     $"Graylog at {Host} rejected the token (401). Check it with: glq profile test - or replace it with: glq profile set-token <name>"),
                 HttpStatusCode.Forbidden => GlqException.Auth(
                     $"Graylog at {Host} refused the request (403): the token's user needs search and stream-read permission on the requested streams."),
-                HttpStatusCode.NotFound => new NotFoundException(),
+                HttpStatusCode.NotFound => new NotFoundException(ApiErrorMessage(text)),
                 _ => GlqException.Api($"Graylog returned {(int)response.StatusCode} {response.ReasonPhrase}: {ErrorMessage(text)}"),
             };
         }
@@ -140,22 +147,34 @@ internal sealed class GraylogClient(HttpClient http)
     // Graylog reports failures as {"type":"ApiError","message":"..."}; anything else is shown trimmed.
     private static string ErrorMessage(string body)
     {
-        try
+        if (ApiErrorMessage(body) is { } message)
         {
-            if (JsonNode.Parse(body) is JsonObject error && error["message"]?.GetValue<string>() is { } message)
-            {
-                return message;
-            }
-        }
-        catch (Exception exception) when (exception is JsonException or InvalidOperationException)
-        {
+            return message;
         }
 
         var trimmed = body.ReplaceLineEndings(" ").Trim();
         return trimmed.Length == 0 ? "(no details)" : trimmed.Length > 300 ? trimmed[..300] + "…" : trimmed;
     }
 
-    private sealed class NotFoundException : Exception;
+    private static string? ApiErrorMessage(string body)
+    {
+        try
+        {
+            return JsonNode.Parse(body) is JsonObject error && error["message"] is JsonValue message &&
+                message.TryGetValue<string>(out var text)
+                ? text
+                : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private sealed class NotFoundException(string? apiMessage) : Exception
+    {
+        internal string? ApiMessage { get; } = apiMessage;
+    }
 }
 
 internal enum UniversalRange
