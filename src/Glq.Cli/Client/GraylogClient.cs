@@ -94,7 +94,7 @@ internal sealed class GraylogClient(HttpClient http)
         catch (HttpRequestException exception) when (FindTlsFailure(exception) is { } tls)
         {
             throw GlqException.Network(
-                $"TLS error talking to {Host}: {tls.Message} Check the profile's ca_bundle; --insecure skips verification but is not safe.",
+                $"TLS error talking to {Host}: {tls.Message.TrimEnd('.')}. Check the profile's ca_bundle; --insecure skips verification but is not safe.",
                 exception);
         }
         catch (HttpRequestException exception)

@@ -1,0 +1,37 @@
+# A throwaway local Graylog for the integration tests - started and seeded by
+# scripts/itest.ps1. Synthetic data only; never point it at real logs.
+name: glq-itest
+
+services:
+  mongodb:
+    image: mongo:7.0
+    restart: "no"
+
+  opensearch:
+    image: opensearchproject/opensearch:2.15.0
+    restart: "no"
+    environment:
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
+      - discovery.type=single-node
+      - action.auto_create_index=false
+      - DISABLE_INSTALL_DEMO_CONFIG=true
+      - DISABLE_SECURITY_PLUGIN=true
+
+  graylog:
+    image: graylog/graylog:6.1
+    restart: "no"
+    depends_on:
+      - mongodb
+      - opensearch
+    entrypoint: /usr/bin/tini -- wait-for-it opensearch:9200 -- /docker-entrypoint.sh
+    environment:
+      # Local-only credentials for a disposable container: admin / admin.
+      GRAYLOG_PASSWORD_SECRET: "glq-itest-password-secret-not-for-real-use"
+      GRAYLOG_ROOT_PASSWORD_SHA2: "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918"
+      GRAYLOG_HTTP_EXTERNAL_URI: "http://127.0.0.1:9000/"
+      GRAYLOG_ELASTICSEARCH_HOSTS: "http://opensearch:9200"
+      GRAYLOG_MONGODB_URI: "mongodb://mongodb:27017/graylog"
+      GRAYLOG_SKIP_PREFLIGHT_CHECKS: "true"
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:12201:12201"
