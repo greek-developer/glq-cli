@@ -1,15 +1,17 @@
 using System.Text.Json;
 
 using Glq.Cli.Configuration;
+using Glq.Cli.Output;
 
 namespace Glq.Cli.Client;
 
 /// <summary>
 /// The per-profile cache under <c>~/.grdev.glq-cli/cache/</c>. It holds stream metadata (for
 /// ten minutes) and the server version - never message content. An entry written for a
-/// different URL is ignored, so re-pointing a profile never serves stale streams.
+/// different URL is ignored, so re-pointing a profile never serves stale streams. Known
+/// secrets are redacted before anything is written, whatever the server sent.
 /// </summary>
-internal sealed class ProfileCache(GlqPaths paths, string profileName, string url, TimeProvider time)
+internal sealed class ProfileCache(GlqPaths paths, string profileName, string url, TimeProvider time, SecretRegistry secrets)
 {
     internal static readonly TimeSpan StreamsTtl = TimeSpan.FromMinutes(10);
 
@@ -67,7 +69,7 @@ internal sealed class ProfileCache(GlqPaths paths, string profileName, string ur
         {
             OwnerOnly.CreateDirectory(paths.Folder);
             OwnerOnly.CreateDirectory(paths.CacheFolder);
-            File.WriteAllText(FilePath, JsonSerializer.Serialize(entry, Options));
+            File.WriteAllText(FilePath, secrets.Redact(JsonSerializer.Serialize(entry, Options)));
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {

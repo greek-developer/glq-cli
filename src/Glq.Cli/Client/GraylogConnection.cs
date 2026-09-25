@@ -52,6 +52,7 @@ internal sealed class GraylogConnection : IDisposable
 
         var token = TokenResolver.Resolve(context, active.Name, profile);
         var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{token}:token"));
+        context.Secrets.Add(credentials);
 
         var services = new ServiceCollection();
         var builder = services
@@ -74,7 +75,7 @@ internal sealed class GraylogConnection : IDisposable
         return new GraylogConnection(
             provider,
             provider.GetRequiredService<GraylogClient>(),
-            new ProfileCache(context.Paths, active.Name, profile.Url!, context.Time));
+            new ProfileCache(context.Paths, active.Name, profile.Url!, context.Time, context.Secrets));
     }
 
     public void Dispose() => _services.Dispose();
