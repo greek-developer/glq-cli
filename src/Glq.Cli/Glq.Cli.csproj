@@ -1,0 +1,95 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Glq.Cli</RootNamespace>
+    <!--
+      System.CommandLine names the root command after the assembly, so this is what makes help
+      read "Usage: glq ...". RootNamespace stays Glq.Cli, and the unit-test assembly is
+      renamed to match so the InternalsVisibleTo below still resolves.
+    -->
+    <AssemblyName>glq</AssemblyName>
+    <PackageOutputPath>../../release</PackageOutputPath>
+    <PackAsTool>true</PackAsTool>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <ToolCommandName>glq</ToolCommandName>
+    <PackageId>grdev.glq-cli</PackageId>
+    <Title>Greek Developer - Graylog Query CLI</Title>
+    <Description>Read-only Graylog query CLI with named profiles and stored queries, for people and agents</Description>
+    <Authors>Thomas Sarmis (thomas.sarmis@gmail.com), GRDEV</Authors>
+    <RepositoryUrl>https://github.com/greek-developer/glq-cli</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://greekdeveloper.com/tools/glq-cli/</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" Version="2.0.10" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The tool exposes its internals to its own unit-test project and nothing else. -->
+    <InternalsVisibleTo Include="$(AssemblyName).UnitTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      The agent-facing guide travels inside the tool, so `glq skill` can print it on a
+      machine that has only the package. One source of truth: this is the same file the
+      repository versions.
+    -->
+    <EmbeddedResource Include="..\..\skills\glq\SKILL.md" LogicalName="SKILL.md" />
+  </ItemGroup>
+
+  <!--
+    Writes ProductionVersion.json - the record of what this build is - beside the tool.
+    Runs before AssignTargetPaths so the generated file is picked up as Content and therefore
+    lands in both the build output and the packed tool. Never hand-edit the result.
+  -->
+  <Target Name="GenerateProductionVersion" DependsOnTargets="GetBuildVersion" BeforeTargets="AssignTargetPaths">
+
+    <!--
+      The git format string needs a literal '%'. On Windows, Exec runs through a .cmd file
+      where '%' must be doubled; on Linux it runs through sh, where doubling reaches git
+      verbatim and yields the literal text "%s". Hence the per-platform escape.
+    -->
+    <PropertyGroup>
+      <_SubjectFormat Condition="'$([MSBuild]::IsOSPlatform(`Windows`))' == 'true'">%%s</_SubjectFormat>
+      <_SubjectFormat Condition="'$(_SubjectFormat)' == ''">%s</_SubjectFormat>
+    </PropertyGroup>
+
+    <Exec Command="git log -1 --format=$(_SubjectFormat)" WorkingDirectory="$(MSBuildProjectDirectory)" ConsoleToMSBuild="true" ContinueOnError="true" StandardOutputImportance="low" IgnoreExitCode="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_CommitSubject" />
+    </Exec>
+
+    <PropertyGroup>
+      <_CommitSubject Condition="'$(_CommitSubject)' == ''">unknown</_CommitSubject>
+      <_CommitSubject>$(_CommitSubject.Replace('\', '\\').Replace('"', '\"'))</_CommitSubject>
+      <_CommitSha Condition="'$(GitCommitId)' != ''">$(GitCommitId)</_CommitSha>
+      <_CommitSha Condition="'$(_CommitSha)' == ''">unknown</_CommitSha>
+      <_BuildTime>$([System.DateTime]::UtcNow.ToString('o'))</_BuildTime>
+      <_ProductionVersionFile>$(IntermediateOutputPath)ProductionVersion.json</_ProductionVersionFile>
+      <_ProductionVersionJson>{ "version": "$(Version)", "commit": { "message": "$(_CommitSubject)", "sha": "$(_CommitSha)" }, "build": { "time": "$(_BuildTime)" } }</_ProductionVersionJson>
+    </PropertyGroup>
+
+    <WriteLinesToFile File="$(_ProductionVersionFile)" Lines="$([MSBuild]::Escape($(_ProductionVersionJson)))" Overwrite="true" />
+
+    <ItemGroup>
+      <Content Include="$(_ProductionVersionFile)">
+        <Link>ProductionVersion.json</Link>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        <!-- It reaches the package through the tool's publish output, not as package content. -->
+        <Pack>false</Pack>
+      </Content>
+    </ItemGroup>
+  </Target>
+
+</Project>

@@ -5,4 +5,4 @@
 
 # The one exception is scripts `sh` executes: a hook checked out with CRLF dies
 # with `bad interpreter: /bin/sh^M`. Pin such files to LF when they are added:
-# scripts/.githooks/** text eol=lf
+scripts/.githooks/** text eol=lf

@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Glq.Cli/Glq.Cli.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Glq.Cli.UnitTests/Glq.Cli.UnitTests.csproj" />
+    <Project Path="tests/Glq.Cli.IntegrationTests/Glq.Cli.IntegrationTests.csproj" />
+  </Folder>
+</Solution>
