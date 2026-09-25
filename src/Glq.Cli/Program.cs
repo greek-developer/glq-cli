@@ -61,6 +61,7 @@ internal static class Program
         GlobalOptions.Profile,
         GlobalOptions.Insecure,
         GlobalOptions.Verbose,
+        SearchCommand.Create(context),
         ProfileCommand.Create(context),
         StreamsCommand.Create(context),
         ConfigCommand.Create(context),
