@@ -5,7 +5,7 @@
 - [x] Create the solution (`.slnx`), `src/Glq.Cli`, `tests/Glq.Cli.UnitTests`, `tests/Glq.Cli.IntegrationTests`, `Directory.Build.props` — tool packaging, `version.json`, `ProductionVersion.json` generation — specs: tool
 - [x] Generate `.gitignore` (`dotnet new gitignore`, plus `release/`) and `.editorconfig` (`dotnet new editorconfig`)
 - [x] Add `scripts/.githooks` with a setup script, and CI on Linux, macOS and Windows with the vulnerability scan
-- [ ] Write `README.md` (plain language) and the user guide in `docs/` — install, least-privilege token setup, config and query examples, security notes
+- [x] Write `README.md` (plain language) and the user guide in `docs/` — install, least-privilege token setup, config and query examples, security notes
 
 ## v1 acceptance
 
