@@ -60,7 +60,7 @@ jobs:
       - name: Read Version
         run: |
           PACKAGE=$(ls ./release/*.nupkg | head -1)
-          VERSION=$(basename "$PACKAGE" .nupkg | sed 's/^grdev\.notify-cli\.//')
+          VERSION=$(basename "$PACKAGE" .nupkg | sed 's/^grdev\.glq-cli\.//')
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "Publishing $PACKAGE as $VERSION"
 
