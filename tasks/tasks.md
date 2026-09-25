@@ -29,6 +29,6 @@
 ## Open questions — confirm with the requester
 
 - [ ] Which Graylog version(s) run here? Decides whether the legacy fallback is needed at all
-- [ ] Publish to nuget.org or an internal feed?
+- [x] Publish to nuget.org or an internal feed? — nuget.org, via Trusted Publishing
 - [ ] Are users external (SSO) accounts? Then access tokens for external users must be enabled
 - [ ] Which log-schema field names belong on the default masking list?

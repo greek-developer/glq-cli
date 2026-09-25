@@ -141,3 +141,5 @@ skill frontmatter. Validate against staging before pointing the tool at producti
 - Masking pseudonyms carry 8 hex characters of an HMAC-SHA256 over the value.
 - Integration tests live in the solution and skip unless `GLQ_ITEST_URL` and
   `GLQ_ITEST_TOKEN` are set; they run the built `glq` with an isolated home directory.
+- The package is published to nuget.org by `.github/workflows/publish-nuget.yml` on a push
+  to `release/production`, through NuGet Trusted Publishing (OIDC), not a stored API key.
