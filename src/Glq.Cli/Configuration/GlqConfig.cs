@@ -39,9 +39,9 @@ internal sealed class Profile
 
     internal const string AuthTokenCommand = "token_command";
 
-    internal const string DefaultRangeValue = "5m";
+    internal const string DefaultRangeValue = "10m";
 
-    internal const int DefaultLimitValue = 100;
+    internal const int DefaultLimitValue = 1000;
 
     internal const int DefaultTimeoutSeconds = 30;
 

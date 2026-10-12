@@ -27,7 +27,7 @@ and confirmation below in mind.
 
 ## Data minimization
 
-Default field lists are narrow and the default limit is 100. No message content is cached;
+Default field lists are narrow and the default limit is 1000. No message content is cached;
 only stream metadata and the server version are.
 
 ## Production awareness

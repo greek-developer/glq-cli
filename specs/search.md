@@ -33,7 +33,7 @@ unknown. A name matching more than one stream is an error that lists the candida
 | Option | Default |
 |---|---|
 | `--fields a,b,c` | Profile `default_fields` |
-| `--limit <n>` | Profile `default_limit` (100) |
+| `--limit <n>` | Profile `default_limit` (1000) |
 | `--sort <field>:asc\|desc` | `timestamp:desc` |
 
 `--limit` has a hard maximum — `max_limit` in `config.json`, default 10,000. A larger

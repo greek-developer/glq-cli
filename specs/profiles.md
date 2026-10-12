@@ -53,9 +53,9 @@ A misspelt or unknown key is a configuration error, not a silently ignored setti
 | `proxy` | — | `http(s)` URL of a proxy for this profile's requests, e.g. `http://10.0.0.59:8888`. Without it the system/environment proxy applies |
 | `timeout_seconds` | `30` | Per-request timeout |
 | `production` | `false` | Marks a production target — see [privacy.md](privacy.md) |
-| `default_range` | `5m` | Relative range used when a search gives none |
+| `default_range` | `10m` | Relative range used when a search gives none |
 | `default_streams` | `[]` | Stream names or IDs used when a search gives none |
-| `default_limit` | `100` | Result count used when a search gives none |
+| `default_limit` | `1000` | Result count used when a search gives none |
 | `default_fields` | narrow built-in set | Fields used when a search gives none |
 | `queries` | `{}` | Stored queries that belong to this profile only |
 

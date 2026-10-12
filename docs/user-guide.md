@@ -84,11 +84,11 @@ glq search 'message:"payment declined"' --stream Payments --fields timestamp,sou
 
 | Option | Meaning |
 |---|---|
-| `--range 30s\|15m\|2h\|1d\|1w` | The last stretch of time (default: the profile's `default_range`, `5m` unless set) |
+| `--range 30s\|15m\|2h\|1d\|1w` | The last stretch of time (default: the profile's `default_range`, `10m` unless set) |
 | `--from`, `--to` | An exact window, ISO 8601. UTC unless the value has an offset or `--tz` is given |
 | `--stream` | Stream name or ID; repeat for several. `glq streams list` shows them |
 | `--fields` | Comma-separated fields to show (default: `timestamp,source,message`) |
-| `--limit` | How many messages (default 100, at most `max_limit`, 10,000 unless changed) |
+| `--limit` | How many messages (default 1000, at most `max_limit`, 10,000 unless changed) |
 | `--sort` | `field:asc` or `field:desc` (default `timestamp:desc`) |
 | `-o` | `table` (default on a terminal), `jsonl` (default when piped), `json` or `csv` |
 | `--raw` | The untransformed Graylog response, for debugging |

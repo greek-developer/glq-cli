@@ -30,7 +30,7 @@ glq search 'level:<=3' --from 2026-09-24T08:00:00Z --to 2026-09-24T09:00:00Z --s
 | `--from`/`--to` | Absolute ISO 8601 range; UTC unless an offset or `--tz <zone>` is given. Never combine with `--range` |
 | `--stream <name or id>` | Repeatable. An ambiguous name is an error listing the IDs to use instead |
 | `--fields a,b,c` | Fields to return (default: the profile's `default_fields`) |
-| `--limit <n>` | Default 100; capped by `max_limit` |
+| `--limit <n>` | Default 1000; capped by `max_limit` |
 | `--sort field:asc\|desc` | Default `timestamp:desc` |
 | `-o table\|json\|jsonl\|csv` | Use `jsonl` or `json` when you parse the output |
 

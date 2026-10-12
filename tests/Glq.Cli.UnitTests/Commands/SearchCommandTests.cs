@@ -111,8 +111,8 @@ public class SearchCommandTests
 
         await host.RunAsync("search", "*");
 
-        Assert.Equal(300, Query(graylog)["timerange"]!["range"]!.GetValue<long>());
-        Assert.Equal(100, MessageList(graylog)["limit"]!.GetValue<int>());
+        Assert.Equal(600, Query(graylog)["timerange"]!["range"]!.GetValue<long>());
+        Assert.Equal(1000, MessageList(graylog)["limit"]!.GetValue<int>());
         Assert.Equal("DESC", MessageList(graylog)["sort"]![0]!["order"]!.GetValue<string>());
         Assert.Null(Query(graylog)["filter"]);
     }

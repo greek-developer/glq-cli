@@ -33,9 +33,9 @@ internal static class ProfileCommand
         var proxy = new Option<string?>("--proxy") { Description = "HTTP proxy for this profile, e.g. http://10.0.0.59:8888. Without it the system/env proxy applies." };
         var timeout = new Option<int?>("--timeout-seconds") { Description = "Per-request timeout (default 30)." };
         var tokenCommand = new Option<string?>("--token-command") { Description = "Shell command that prints the token, e.g. a password-manager CLI." };
-        var defaultRange = new Option<string?>("--default-range") { Description = "Relative range used when a search gives none (default 5m)." };
+        var defaultRange = new Option<string?>("--default-range") { Description = "Relative range used when a search gives none (default 10m)." };
         var defaultStream = new Option<string[]>("--default-stream") { Description = "Stream name or ID used when a search gives none. Repeatable." };
-        var defaultLimit = new Option<int?>("--default-limit") { Description = "Result count used when a search gives none (default 100)." };
+        var defaultLimit = new Option<int?>("--default-limit") { Description = "Result count used when a search gives none (default 1000)." };
         var defaultFields = new Option<string?>("--default-fields") { Description = "Comma-separated fields used when a search gives none." };
         var use = new Option<bool>("--use") { Description = "Make it the current profile." };
         var force = new Option<bool>("--force") { Description = "Replace an existing profile of the same name." };
