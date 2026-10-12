@@ -74,7 +74,7 @@ because they run only when `GLQ_ITEST_URL` and `GLQ_ITEST_TOKEN` are set.
 
 | Layer | Covers |
 |---|---|
-| `tests/Glq.Cli.UnitTests` | Config and profile resolution, token resolution, query templating and Lucene escaping (including injection attempts), masking (Luhn, deterministic pseudonyms), formatters, exit-code mapping, and both search backends against a mocked `HttpMessageHandler` — 401, 403, 404 legacy fallback, timeouts, TLS errors |
+| `tests/Glq.Cli.UnitTests` | Config and profile resolution, token resolution, query templating and Lucene escaping (including injection attempts), formatters, exit-code mapping, and both search backends against a mocked `HttpMessageHandler` — 401, 403, 404 legacy fallback, timeouts, TLS errors |
 | `tests/Glq.Cli.IntegrationTests` | Both backends against a real local Graylog in docker — opt-in via `scripts/itest.ps1` |
 
 A token-leak test captures every stdout, stderr and log line across the command surface and
@@ -89,7 +89,6 @@ skill frontmatter. Validate against staging before pointing the tool at producti
 | Create or accept `config.json` readable by anyone but its owner | It holds plaintext tokens |
 | Keep config or secrets outside `~/.grdev.glq-cli/` — no keyring, no second file, no path override | One folder holds all of it |
 | Let a token reach any output — logs, errors, `--raw`, debug HTTP traces, crash traces | Redact `Authorization` everywhere; the token-leak test enforces it |
-| Output an unmasked card-like number (Luhn-valid 13–19 digits) | Not even with `--no-mask` |
 | Cache message content locally | Only stream metadata and the server version may be cached |
 | Add any Graylog call beyond search, streams and system info, or a generic "call any endpoint" command | The tool is read-only by construction |
 | Add upload, webhook, share or any network output | Results go only to stdout or files the user redirects to |
@@ -110,7 +109,7 @@ skill frontmatter. Validate against staging before pointing the tool at producti
 - Configuration is JSON, not TOML.
 - All user state lives in `~/.grdev.glq-cli/`, not `$XDG_CONFIG_HOME/glq/`.
 - One file, `~/.grdev.glq-cli/config.json`, holds all config and secrets: profiles, their
-  tokens, stored queries, masking settings. No OS keyring, no separate queries file, no
+  tokens, stored queries. No OS keyring, no separate queries file, no
   `--queries-file` / `GLQ_QUERIES_FILE`.
 - Tokens are stored in plaintext; `config.json` is owner-only (`0600`, user-only ACL on
   Windows) and `glq` refuses to run when it is not.
@@ -138,8 +137,19 @@ skill frontmatter. Validate against staging before pointing the tool at producti
   platform profile folder.
 - Unknown keys in `config.json` and in imported queries are errors.
 - Global options are `--profile`, `--verbose` (redacted HTTP trace) and `--insecure`.
-- Masking pseudonyms carry 8 hex characters of an HMAC-SHA256 over the value.
 - Integration tests live in the solution and skip unless `GLQ_ITEST_URL` and
   `GLQ_ITEST_TOKEN` are set; they run the built `glq` with an isolated home directory.
 - The package is published to nuget.org by `.github/workflows/publish-nuget.yml` on a push
   to `release/production`, through NuGet Trusted Publishing (OIDC), not a stored API key.
+
+### 2026-10-09
+
+- Profiles take an optional `proxy` (`glq profile add --proxy http://host:port`) for
+  Graylog servers reachable only through a proxy.
+- The preferred search is `POST /api/views/search/sync`, not `/api/views/search/messages`:
+  the latter is a CSV export that answers 406 to JSON, has no sort, and returns the oldest
+  messages first. A lone `*` query is sent as is.
+- `--json` is shorthand for `-o json` on every command that has `-o`.
+- Masking is removed: no `mask_fields`, `mask_salt`, `--mask-field` or `--no-mask`, and
+  results are printed as Graylog returns them. Token redaction stays. `config.json` files
+  that still carry the removed keys are rejected as unknown keys until the keys are deleted.

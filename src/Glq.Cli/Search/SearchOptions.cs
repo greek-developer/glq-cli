@@ -78,17 +78,17 @@ internal sealed class RunOptions
 {
     internal Option<OutputFormat?> Output { get; } = Formatter.CreateOption();
 
-    internal Option<bool> Raw { get; } = new("--raw") { Description = "Print the untransformed API response, for debugging. Still masked." };
+    internal Option<bool> Json { get; } = Formatter.CreateJsonOption();
 
-    internal Option<bool> NoMask { get; } = new("--no-mask") { Description = "Turn off masking of emails, phones and mask_fields. Card numbers stay masked." };
+    internal Option<bool> Raw { get; } = new("--raw") { Description = "Print the untransformed API response, for debugging." };
 
     internal Option<bool> Yes { get; } = new("--yes", "-y") { Description = "Confirm a large run against a production profile without a prompt." };
 
     internal void AddTo(Command command)
     {
         command.Options.Add(Output);
+        command.Options.Add(Json);
         command.Options.Add(Raw);
-        command.Options.Add(NoMask);
         command.Options.Add(Yes);
     }
 }

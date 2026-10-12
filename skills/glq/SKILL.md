@@ -67,16 +67,13 @@ glq streams list -o jsonl [--filter <text>]
 
 ## Privacy — what you must know
 
-- Output is **masked by default**: emails, phone numbers and configured fields such as
-  `customer_id` become stable pseudonyms like `cust_…a91f`. The same value always masks the
-  same way, so you can still correlate rows.
-- Card-like numbers are masked always, even with `--no-mask`.
+- Output is **not masked**: results are exactly what Graylog returns and may contain
+  personal data. Do not paste it elsewhere unless the human asks for it.
 - On a production profile glq prints `querying PRODUCTION Graylog …` to stderr, and a large
   `--limit` needs `--yes`.
 
 ## Never
 
-- Never pass `--no-mask` unless the human explicitly asks for unmasked data.
 - Never pass `--yes` to get past the production confirmation unless the human explicitly
   approved that run.
 - Never pass `--insecure` to get past a TLS error — report the error instead.

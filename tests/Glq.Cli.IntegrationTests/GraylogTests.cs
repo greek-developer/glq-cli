@@ -42,7 +42,7 @@ public class GraylogTests
     }
 
     [GraylogFact]
-    public async Task Search_ViaTheViewsApi_FindsAndMasksMessages()
+    public async Task Search_ViaTheViewsApi_FindsMessages()
     {
         using var glq = await ConfiguredAsync();
 
@@ -53,9 +53,7 @@ public class GraylogTests
         var rows = Lines(result.Out);
         Assert.Equal(2, rows.Count);
         Assert.All(rows, row => Assert.Equal("itest-api", row["source"]!.GetValue<string>()));
-        Assert.DoesNotContain("jane.doe@example.com", result.Out);
-        Assert.DoesNotContain("C-1001", result.Out);
-        Assert.Contains("cust_…", result.Out);
+        Assert.Contains("C-1001", result.Out);
     }
 
     [GraylogFact]
@@ -74,18 +72,6 @@ public class GraylogTests
         Assert.Equal(0, result.ExitCode);
         Assert.Contains("/api/search/universal/relative", result.Err);
         Assert.Equal(2, Lines(result.Out).Count);
-    }
-
-    [GraylogFact]
-    public async Task Search_AlwaysMasksCardNumbers()
-    {
-        using var glq = await ConfiguredAsync();
-
-        var result = await glq.RunAsync(Graylog.Token, "search", "source:itest-payments", "-o", "jsonl", "--no-mask");
-
-        Assert.Equal(0, result.ExitCode);
-        Assert.DoesNotContain("4111111111111111", result.Out);
-        Assert.Contains("card_…", result.Out);
     }
 
     [GraylogFact]

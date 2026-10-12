@@ -3,8 +3,8 @@ using Glq.Cli.Queries;
 namespace Glq.Cli.Configuration;
 
 /// <summary>
-/// The whole of <c>config.json</c>: profiles, their tokens, shared queries and masking
-/// settings. Optional settings are nullable so an unset value stays out of the file; the
+/// The whole of <c>config.json</c>: profiles, their tokens and shared queries.
+/// Optional settings are nullable so an unset value stays out of the file; the
 /// <c>Effective…</c> members apply the documented defaults.
 /// </summary>
 internal sealed class GlqConfig
@@ -13,18 +13,11 @@ internal sealed class GlqConfig
 
     internal const int DefaultConfirmLimit = 1_000;
 
-    internal static readonly IReadOnlyList<string> DefaultMaskFields =
-        ["email", "phone", "username", "customer_id", "user_id", "ip", "card*"];
-
     public string? CurrentProfile { get; set; }
 
     public int? MaxLimit { get; set; }
 
     public int? ConfirmLimit { get; set; }
-
-    public List<string>? MaskFields { get; set; }
-
-    public string? MaskSalt { get; set; }
 
     public SortedDictionary<string, StoredQuery>? Queries { get; set; }
 
@@ -33,8 +26,6 @@ internal sealed class GlqConfig
     internal int EffectiveMaxLimit => MaxLimit ?? DefaultMaxLimit;
 
     internal int EffectiveConfirmLimit => ConfirmLimit ?? DefaultConfirmLimit;
-
-    internal IReadOnlyList<string> EffectiveMaskFields => MaskFields ?? DefaultMaskFields;
 
     internal SortedDictionary<string, Profile> ProfilesOrEmpty => Profiles ??= new(StringComparer.Ordinal);
 
@@ -68,6 +59,8 @@ internal sealed class Profile
 
     public string? CaBundle { get; set; }
 
+    public string? Proxy { get; set; }
+
     public int? TimeoutSeconds { get; set; }
 
     public bool? Production { get; set; }
@@ -79,8 +72,6 @@ internal sealed class Profile
     public int? DefaultLimit { get; set; }
 
     public List<string>? DefaultFields { get; set; }
-
-    public List<string>? MaskFields { get; set; }
 
     public SortedDictionary<string, StoredQuery>? Queries { get; set; }
 
@@ -99,8 +90,6 @@ internal sealed class Profile
     internal int EffectiveDefaultLimit => DefaultLimit ?? DefaultLimitValue;
 
     internal IReadOnlyList<string> EffectiveDefaultFields => DefaultFields is { Count: > 0 } ? DefaultFields : BuiltInFields;
-
-    internal IReadOnlyList<string> EffectiveMaskFields => MaskFields ?? [];
 
     internal SortedDictionary<string, StoredQuery> QueriesOrEmpty => Queries ??= new(StringComparer.Ordinal);
 }

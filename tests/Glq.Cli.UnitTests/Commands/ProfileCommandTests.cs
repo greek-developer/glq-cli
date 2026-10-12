@@ -20,6 +20,20 @@ public class ProfileCommandTests
     }
 
     [Fact]
+    public async Task Add_StoresTheProxy_AndRejectsABadOne()
+    {
+        using var host = new TestHost();
+
+        var good = await host.RunAsync("profile", "add", "dev", "--url", "https://graylog.dev", "--proxy", "http://10.0.0.59:8888");
+        var bad = await host.RunAsync("profile", "add", "other", "--url", "https://graylog.dev", "--proxy", "10.0.0.59:8888");
+
+        Assert.Equal(ExitCodes.Success, good.ExitCode);
+        Assert.Equal("http://10.0.0.59:8888", host.ReadConfig().Profiles!["dev"].Proxy);
+        Assert.NotEqual(ExitCodes.Success, bad.ExitCode);
+        Assert.DoesNotContain("other", host.ReadConfig().Profiles!.Keys);
+    }
+
+    [Fact]
     public async Task Add_KeepsTheCurrentProfile_UnlessUseIsGiven()
     {
         using var host = new TestHost();

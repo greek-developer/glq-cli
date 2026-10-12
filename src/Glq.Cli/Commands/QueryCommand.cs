@@ -84,7 +84,8 @@ internal static partial class QueryCommand
     {
         var tag = new Option<string?>("--tag") { Description = "Show only queries with this tag." };
         var output = Formatter.CreateOption();
-        var command = new Command("list", "List the stored queries visible on the active profile.") { tag, output };
+        var json = Formatter.CreateJsonOption();
+        var command = new Command("list", "List the stored queries visible on the active profile.") { tag, output, json };
         command.SetAction(parseResult =>
         {
             var config = context.Store.Load();
@@ -107,7 +108,7 @@ internal static partial class QueryCommand
 
             Formatter.Write(
                 context.Out,
-                Formatter.Resolve(parseResult.GetValue(output), context.StdoutIsTerminal),
+                Formatter.Resolve(parseResult.GetValue(output), parseResult.GetValue(json), context.StdoutIsTerminal),
                 ["name", "scope", "description", "tags", "params", "query"],
                 rows);
             return ExitCodes.Success;

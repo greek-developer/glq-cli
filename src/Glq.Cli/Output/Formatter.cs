@@ -28,6 +28,24 @@ internal static class Formatter
         Description = "Output format: table, json, jsonl or csv (default: table on a terminal, jsonl otherwise).",
     };
 
+    internal static Option<bool> CreateJsonOption() => new("--json")
+    {
+        Description = "Shorthand for --output json.",
+    };
+
+    /// <summary>The format from <c>--output</c> and <c>--json</c>; the two must not disagree.</summary>
+    internal static OutputFormat Resolve(OutputFormat? requested, bool json, bool stdoutIsTerminal)
+    {
+        if (!json)
+        {
+            return Resolve(requested, stdoutIsTerminal);
+        }
+
+        return requested is null or OutputFormat.Json
+            ? OutputFormat.Json
+            : throw GlqException.Usage($"--json cannot be combined with --output {requested.ToString()!.ToLowerInvariant()}.");
+    }
+
     /// <summary>The requested format, or the default for where stdout goes.</summary>
     internal static OutputFormat Resolve(OutputFormat? requested, bool stdoutIsTerminal) =>
         requested ?? (stdoutIsTerminal ? OutputFormat.Table : OutputFormat.Jsonl);

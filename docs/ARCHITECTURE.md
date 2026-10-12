@@ -15,7 +15,6 @@ One application project, `src/Glq.Cli`, a .NET global tool (assembly `glq`, so h
 | `Search` | The search pipeline shared by `search` and `query run`: `SearchOptions`, `TimeRange`, `StreamResolver`, `SearchRunner` |
 | `Queries` | Stored-query model, `QueryCatalog` (shared vs profile-only), `{{param}}` templating and Lucene escaping |
 | `Output` | `table`, `json`, `jsonl`, `csv` formatters and `RedactingTextWriter` |
-| `Masking` | Pattern, field-name and Luhn masking; deterministic salted pseudonyms |
 
 `skills/glq/SKILL.md` is an embedded resource of `Glq.Cli`, printed by `glq skill`.
 
@@ -52,7 +51,7 @@ Every endpoint is verified against the target instance's API browser
 
 | Purpose | Endpoint |
 |---|---|
-| Search — preferred | `POST /api/views/search/messages` — body `query_string`, `timerange`, `streams`, `fields_in_order`, `limit`, `sort: [{field, order}]`; JSON response `schema` + `datarows` |
+| Search — preferred | `POST /api/views/search/sync` — a one-query search (`query`, `timerange`, a stream `filter`) with one `messages` search type (`limit`, `sort: [{field, order}]`, `fields`); nothing is saved on the server. JSON response `results.{query}.search_types.{id}.messages[].message` |
 | Search — fallback | `GET /api/search/universal/relative`, `GET /api/search/universal/absolute` — `query`, `range` or `from`/`to`, `limit`, `fields`, `sort`, `filter=streams:<id> OR …` |
 | Streams | `GET /api/streams` |
 | Server version | `GET /api/system` |
@@ -72,15 +71,6 @@ Every endpoint is verified against the target instance's API browser
 - **Read-only by construction.** `GraylogClient` exposes exactly search (views and legacy),
   list streams and system info. There is no method that takes an arbitrary path.
 - **Limits.** Result size is bounded by `--limit` and the `max_limit` cap.
-
-## Masking
-
-`Masker` is created per run from the top-level and profile `mask_fields` and `mask_salt`
-(generated and saved on first use). Rows are masked after the search and before
-formatting, so every format sees the same values; `--raw` masks the whole response tree,
-mapping views `datarows` cells to fields through the `schema`. A pseudonym is
-`<prefix>_…<first 8 hex of HMAC-SHA256(salt, value)>`. Card masking runs even when masking
-is off.
 
 ## Caching
 

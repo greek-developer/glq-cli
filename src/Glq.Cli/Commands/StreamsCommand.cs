@@ -16,8 +16,9 @@ internal static class StreamsCommand
         var filter = new Option<string?>("--filter") { Description = "Show only streams whose name contains this text (any case)." };
         var refresh = new Option<bool>("--refresh") { Description = "Ignore the 10-minute stream cache." };
         var output = Formatter.CreateOption();
+        var json = Formatter.CreateJsonOption();
 
-        var list = new Command("list", "List the streams the token's user can read.") { filter, refresh, output };
+        var list = new Command("list", "List the streams the token's user can read.") { filter, refresh, output, json };
         list.SetAction(async (parseResult, cancellationToken) =>
         {
             var active = ActiveProfile.Resolve(context, parseResult, context.Store.Load());
@@ -37,7 +38,7 @@ internal static class StreamsCommand
 
             Formatter.Write(
                 context.Out,
-                Formatter.Resolve(parseResult.GetValue(output), context.StdoutIsTerminal),
+                Formatter.Resolve(parseResult.GetValue(output), parseResult.GetValue(json), context.StdoutIsTerminal),
                 ["name", "id", "description"],
                 rows);
             return ExitCodes.Success;

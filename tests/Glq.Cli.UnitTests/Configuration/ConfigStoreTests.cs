@@ -35,13 +35,13 @@ public class ConfigStoreTests
     public void Save_ThenLoad_RoundTrips()
     {
         using var host = new TestHost();
-        var config = new GlqConfig { MaskSalt = "salt" };
+        var config = new GlqConfig { MaxLimit = 500 };
         config.QueriesOrEmpty["errors"] = new Glq.Cli.Queries.StoredQuery { Query = "level:3", Tags = ["ops"] };
 
         host.Store.Save(config);
         var loaded = host.Store.Load();
 
-        Assert.Equal("salt", loaded.MaskSalt);
+        Assert.Equal(500, loaded.MaxLimit);
         Assert.Equal("level:3", loaded.QueriesOrEmpty["errors"].Query);
         Assert.Equal(["ops"], loaded.QueriesOrEmpty["errors"].Tags!);
     }

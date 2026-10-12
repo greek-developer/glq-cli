@@ -19,21 +19,11 @@ back by a server, is replaced with `***`.
 TLS verification is on by default. `--insecure` or `verify_tls = false` prints a warning to
 stderr on every run. A custom CA bundle is supported through `ca_bundle`.
 
-## Masking
+## Personal data
 
-Output is masked by default, in every format, unless `--no-mask` is given:
-
-- email addresses and phone numbers, detected by pattern;
-- fields named in the top-level `mask_fields` of `config.json` — by default `email`,
-  `phone`, `username`, `customer_id`, `user_id`, `ip`, `card*`;
-- fields named in the profile's `mask_fields`.
-
-Masks are deterministic pseudonyms from a salted hash — e.g. `cust_…a91f` — so the same
-value masks the same way across rows and correlation still works. The salt is generated on
-first use and kept as `mask_salt` in `config.json`.
-
-**Card numbers are always masked.** Any Luhn-valid sequence of 13–19 digits is masked,
-`--no-mask` notwithstanding.
+`glq` does not mask or alter results: messages are printed exactly as Graylog returns them.
+Treat the output as sensitive — use a least-privilege token and keep the production notice
+and confirmation below in mind.
 
 ## Data minimization
 

@@ -5,14 +5,13 @@ using Glq.Cli.Backends;
 using Glq.Cli.Client;
 using Glq.Cli.Commands;
 using Glq.Cli.Configuration;
-using Glq.Cli.Masking;
 using Glq.Cli.Output;
 
 namespace Glq.Cli.Search;
 
 /// <summary>
 /// Runs one search end to end for <c>search</c> and <c>query run</c>: applies profile
-/// defaults and limits, asks for confirmation where production needs it, searches, masks and
+/// defaults and limits, asks for confirmation where production needs it, searches and
 /// prints.
 /// </summary>
 internal static class SearchRunner
@@ -72,21 +71,13 @@ internal static class SearchRunner
         var verbose = parseResult.GetValue(GlobalOptions.Verbose);
         var result = await new SearchService(connection, context.Err, verbose).SearchAsync(request, cancellationToken).ConfigureAwait(false);
 
-        var masker = Masker.Create(context.Store, config, profile, enabled: !parseResult.GetValue(run.NoMask));
-
         if (parseResult.GetValue(run.Raw))
         {
-            var raw = masker.MaskTree(result.Raw?.DeepClone());
-            context.Out.WriteLine(raw is null ? "null" : raw.ToJsonString(RawJson));
+            context.Out.WriteLine(result.Raw is null ? "null" : result.Raw.ToJsonString(RawJson));
             return ExitCodes.Success;
         }
 
-        foreach (var message in result.Messages)
-        {
-            masker.MaskRow(message);
-        }
-
-        var format = Formatter.Resolve(parseResult.GetValue(run.Output), context.StdoutIsTerminal);
+        var format = Formatter.Resolve(parseResult.GetValue(run.Output), parseResult.GetValue(run.Json), context.StdoutIsTerminal);
         if (format is OutputFormat.Table && result.Messages.Count == 0)
         {
             context.Err.WriteLine("No messages matched.");

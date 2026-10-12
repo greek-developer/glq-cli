@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
@@ -83,6 +84,12 @@ internal sealed class GraylogConnection : IDisposable
     private static SocketsHttpHandler CreateHandler(Profile profile, bool verifyTls)
     {
         var handler = new SocketsHttpHandler();
+        if (!string.IsNullOrWhiteSpace(profile.Proxy))
+        {
+            handler.Proxy = new WebProxy(ParseProxy(profile.Proxy));
+            handler.UseProxy = true;
+        }
+
         if (!verifyTls)
         {
             handler.SslOptions.RemoteCertificateValidationCallback = static (_, _, _, _) => true;
@@ -96,6 +103,11 @@ internal sealed class GraylogConnection : IDisposable
 
         return handler;
     }
+
+    internal static Uri ParseProxy(string proxy) =>
+        Uri.TryCreate(proxy, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https" && !string.IsNullOrEmpty(uri.Host)
+            ? uri
+            : throw GlqException.Usage($"proxy '{proxy}' is not a valid http(s) URL, e.g. http://10.0.0.59:8888.");
 
     private static X509Certificate2Collection LoadCaBundle(string path)
     {

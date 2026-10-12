@@ -17,8 +17,8 @@ glq search 'source:api-gateway AND http_status:>=500' --range 15m
 - **Saved searches.** Give a search you run often a name, leave blanks in it to fill in
   later, and run it with one short command. Share your saved searches with colleagues as a
   small file.
-- **Careful with personal data.** Emails, phone numbers and customer IDs are masked by
-  default, card numbers are always masked, and production clusters are clearly flagged.
+- **Careful with personal data.** Production clusters are clearly flagged, and large runs
+  against them need confirmation. Results are printed as Graylog returns them.
 - **Only reads.** `glq` can search and list streams. It cannot change anything in Graylog.
 - **Works for AI agents too.** `glq skill` prints a guide that coding agents can load, so
   they can search logs safely on your behalf.

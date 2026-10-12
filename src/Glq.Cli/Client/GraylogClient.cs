@@ -34,14 +34,15 @@ internal sealed class GraylogClient(HttpClient http)
     }
 
     /// <summary>
-    /// <c>POST /api/views/search/messages</c> - the preferred search. <c>null</c> when the
-    /// endpoint does not exist (a 404 that is not a Graylog API error).
+    /// <c>POST /api/views/search/sync</c> - the preferred search: runs a search without saving
+    /// it and waits for the result. <c>null</c> when the endpoint does not exist (a 404 that
+    /// is not a Graylog API error).
     /// </summary>
-    internal async Task<JsonNode?> SearchMessagesAsync(JsonObject request, CancellationToken cancellationToken)
+    internal async Task<JsonNode?> SearchSyncAsync(JsonObject request, CancellationToken cancellationToken)
     {
         try
         {
-            return await SendAsync(HttpMethod.Post, "api/views/search/messages", JsonContent.Create(request), cancellationToken)
+            return await SendAsync(HttpMethod.Post, "api/views/search/sync", JsonContent.Create(request), cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (NotFoundException notFound) when (notFound.ApiMessage is null)

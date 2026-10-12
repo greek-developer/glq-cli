@@ -15,7 +15,6 @@
 - [x] Stored queries, shared and profile-only: save, list, show, edit, run with params and overrides, export, import; missing params give a clear error — specs: stored-queries
 - [x] `config.json` is created owner-only, and `glq` refuses to run when it is readable by others — specs: profiles
 - [x] Tokens never in any file but `config.json`, or in any output, proven by a test that greps all captured output — specs: privacy
-- [x] Masking on by default; card-like numbers masked even with `--no-mask` — specs: privacy
 - [x] Production notice shown; large production runs need confirmation — specs: privacy
 - [x] Views API used when available, legacy fallback on 404, both paths tested — specs: search
 - [x] `version`, `config path|edit` and `skill` behave per the standard — specs: tool
@@ -31,4 +30,3 @@
 - [ ] Which Graylog version(s) run here? Decides whether the legacy fallback is needed at all
 - [x] Publish to nuget.org or an internal feed? — nuget.org, via Trusted Publishing
 - [ ] Are users external (SSO) accounts? Then access tokens for external users must be enabled
-- [ ] Which log-schema field names belong on the default masking list?

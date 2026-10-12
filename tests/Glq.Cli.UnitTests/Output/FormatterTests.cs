@@ -28,6 +28,9 @@ public class FormatterTests
         Assert.Equal(OutputFormat.Table, Formatter.Resolve(null, stdoutIsTerminal: true));
         Assert.Equal(OutputFormat.Jsonl, Formatter.Resolve(null, stdoutIsTerminal: false));
         Assert.Equal(OutputFormat.Csv, Formatter.Resolve(OutputFormat.Csv, stdoutIsTerminal: true));
+        Assert.Equal(OutputFormat.Json, Formatter.Resolve(null, json: true, stdoutIsTerminal: true));
+        Assert.Equal(OutputFormat.Json, Formatter.Resolve(OutputFormat.Json, json: true, stdoutIsTerminal: false));
+        Assert.Throws<GlqException>(() => Formatter.Resolve(OutputFormat.Table, json: true, stdoutIsTerminal: false));
     }
 
     [Fact]

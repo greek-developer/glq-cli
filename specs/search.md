@@ -42,15 +42,14 @@ value is rejected with exit code `1`.
 ## Output
 
 `-o/--output` selects the format — see [output.md](output.md). `--raw` prints the
-untransformed API response for debugging; it is still subject to token redaction and
-card-number masking ([privacy.md](privacy.md)); it is masked like any other output unless
-`--no-mask` is given.
+untransformed API response for debugging; it is still subject to token redaction
+([privacy.md](privacy.md)).
 
 On a terminal with no matches, the table output prints `No messages matched.` to stderr.
 
 ## Backends
 
-`glq` uses the views search API (`/api/views/search/messages`) and falls back to the legacy
+`glq` uses the views search API (`POST /api/views/search/sync`, which runs a search without saving it, with a `messages` search type so that Graylog applies the sort and the limit) and falls back to the legacy
 universal search API when the views API answers 404 — a 404 that carries a Graylog error
 message is reported as an error instead. A fallback is remembered per profile, and a server
 whose cached version (from `glq profile test`) predates 4.1 goes straight to the legacy API.

@@ -15,16 +15,36 @@ internal interface ISearchBackend
     Task<SearchResult?> SearchAsync(SearchRequest request, CancellationToken cancellationToken);
 }
 
-/// <summary><c>POST /api/views/search/messages</c> - the preferred search.</summary>
+/// <summary><c>POST /api/views/search/sync</c> - the preferred search.</summary>
 internal sealed class ViewsBackend(GraylogClient client) : ISearchBackend
 {
     public string Name => "views";
 
+    /// <summary>
+    /// A one-query search with a single <c>messages</c> search type - the same shape the Graylog
+    /// UI sends - so that Graylog applies the sort and the limit.
+    /// </summary>
     internal static JsonObject BuildRequest(SearchRequest request)
     {
-        var body = new JsonObject
+        var searchType = new JsonObject
         {
-            ["query_string"] = new JsonObject { ["type"] = "elasticsearch", ["query_string"] = request.Query },
+            ["id"] = Guid.NewGuid().ToString(),
+            ["type"] = "messages",
+            ["limit"] = request.Limit,
+            ["offset"] = 0,
+            ["sort"] = new JsonArray(new JsonObject
+            {
+                ["field"] = request.Sort.Field,
+                ["order"] = request.Sort.Descending ? "DESC" : "ASC",
+            }),
+            ["fields"] = new JsonArray([.. request.Fields.Select(f => (JsonNode?)f)]),
+            ["decorators"] = new JsonArray(),
+        };
+
+        var query = new JsonObject
+        {
+            ["id"] = Guid.NewGuid().ToString(),
+            ["query"] = new JsonObject { ["type"] = "elasticsearch", ["query_string"] = request.Query },
             ["timerange"] = request.Range switch
             {
                 TimeRange.Absolute absolute => new JsonObject
@@ -40,51 +60,68 @@ internal sealed class ViewsBackend(GraylogClient client) : ISearchBackend
                 },
                 _ => throw new InvalidOperationException("Unknown time range."),
             },
-            ["fields_in_order"] = new JsonArray([.. request.Fields.Select(f => (JsonNode?)f)]),
-            ["limit"] = request.Limit,
-            ["sort"] = new JsonArray(new JsonObject
-            {
-                ["field"] = request.Sort.Field,
-                ["order"] = request.Sort.Descending ? "DESC" : "ASC",
-            }),
+            ["search_types"] = new JsonArray(searchType),
         };
 
         if (request.StreamIds.Count > 0)
         {
-            body["streams"] = new JsonArray([.. request.StreamIds.Select(s => (JsonNode?)s)]);
+            query["filter"] = new JsonObject
+            {
+                ["type"] = "or",
+                ["filters"] = new JsonArray([.. request.StreamIds.Select(id => (JsonNode?)new JsonObject { ["type"] = "stream", ["id"] = id })]),
+            };
         }
 
-        return body;
+        return new JsonObject
+        {
+            ["id"] = Guid.NewGuid().ToString(),
+            ["queries"] = new JsonArray(query),
+            ["parameters"] = new JsonArray(),
+        };
     }
 
-    /// <summary>Reads the tabular response: a schema of columns and rows of cells.</summary>
+    /// <summary>
+    /// Reads the search job: <c>results.{query}.search_types.{id}.messages[].message</c>. A query
+    /// that Graylog could not run is reported with Graylog's own description.
+    /// </summary>
     internal static SearchResult ParseResponse(JsonNode? response, IReadOnlyList<string> requestedFields)
     {
-        var columns = response?["schema"] is JsonArray schema
-            ? schema.Select(column => column?["field"]?.GetValue<string>() ?? column?["name"]?.GetValue<string>() ?? string.Empty).ToList()
-            : [.. requestedFields];
-
-        var messages = new List<JsonObject>();
-        if (response?["datarows"] is JsonArray rows)
+        var result = (response?["results"] as JsonObject)?.FirstOrDefault().Value;
+        if (result is null)
         {
-            foreach (var row in rows.OfType<JsonArray>())
-            {
-                var message = new JsonObject();
-                for (var i = 0; i < columns.Count && i < row.Count; i++)
-                {
-                    message[columns[i]] = row[i]?.DeepClone();
-                }
-
-                messages.Add(message);
-            }
+            throw GlqException.Api("Graylog answered the search without a result.");
         }
 
-        return new SearchResult(columns, messages, response);
+        var errors = (result["errors"] as JsonArray ?? [])
+            .Select(error => error?["description"]?.GetValue<string>() ?? error?["message"]?.GetValue<string>())
+            .OfType<string>()
+            .ToList();
+        if (errors.Count > 0)
+        {
+            throw GlqException.Api($"Graylog could not run the search: {string.Join("; ", errors)}");
+        }
+
+        var messages = ((result["search_types"] as JsonObject)?.FirstOrDefault().Value?["messages"] as JsonArray ?? [])
+            .Select(item => item?["message"] as JsonObject)
+            .OfType<JsonObject>()
+            .Select(message =>
+            {
+                var row = new JsonObject();
+                foreach (var field in requestedFields)
+                {
+                    row[field] = message[field]?.DeepClone();
+                }
+
+                return row;
+            })
+            .ToList();
+
+        return new SearchResult([.. requestedFields], messages, response);
     }
 
     public async Task<SearchResult?> SearchAsync(SearchRequest request, CancellationToken cancellationToken)
     {
-        var response = await client.SearchMessagesAsync(BuildRequest(request), cancellationToken).ConfigureAwait(false);
+        var response = await client.SearchSyncAsync(BuildRequest(request), cancellationToken).ConfigureAwait(false);
         return response is null ? null : ParseResponse(response, request.Fields);
     }
 
@@ -167,7 +204,7 @@ internal sealed class LegacyBackend(GraylogClient client) : ISearchBackend
 /// </summary>
 internal sealed class SearchService(GraylogConnection connection, TextWriter error, bool verbose)
 {
-    /// <summary>The first Graylog version with <c>/api/views/search/messages</c>.</summary>
+    /// <summary>The first Graylog version with <c>/api/views/search/sync</c>.</summary>
     internal static readonly Version ViewsApiSince = new(4, 1);
 
     internal async Task<SearchResult> SearchAsync(SearchRequest request, CancellationToken cancellationToken)

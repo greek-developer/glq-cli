@@ -8,15 +8,11 @@ namespace Glq.Cli.UnitTests.Commands;
 
 public class SearchCommandTests
 {
+    // What /api/views/search/sync answers with, newest message first.
     internal const string ViewsResponse = """
-        {"schema":[
-           {"column_type":"field","type":"date","field":"timestamp","name":"field: timestamp"},
-           {"column_type":"field","type":"string","field":"source","name":"field: source"},
-           {"column_type":"field","type":"string","field":"message","name":"field: message"}],
-         "datarows":[
-           ["2026-09-24T08:00:00.000Z","api-gateway","GET /orders 500 for jane.doe@example.com"],
-           ["2026-09-24T08:00:01.000Z","payments","charged 4111111111111111"]],
-         "metadata":{}}
+        {"id":"job-1","results":{"q1":{"state":"COMPLETE","errors":[],"search_types":{"st1":{"type":"messages","total_results":2,"messages":[
+          {"index":"graylog_0","message":{"timestamp":"2026-09-24T08:00:01.000Z","source":"payments","message":"charged 4111111111111111"}},
+          {"index":"graylog_0","message":{"timestamp":"2026-09-24T08:00:00.000Z","source":"api-gateway","message":"GET /orders 500 for jane.doe@example.com","customer_id":"C-1"}}]}}}}}
         """;
 
     internal const string LegacyResponse = """
@@ -28,7 +24,7 @@ public class SearchCommandTests
     {
         var host = new TestHost { Graylog = graylog };
         host.WriteConfig($$"""
-            { {{topLevel}} "current_profile": "dev", "mask_salt": "salt",
+            { {{topLevel}} "current_profile": "dev",
               "profiles": { "dev": { "url": "https://graylog.dev", "token": "{{TestHost.Token}}" {{profileExtras}} } } }
             """);
         return host;
@@ -36,11 +32,17 @@ public class SearchCommandTests
 
     private static FakeGraylog Views(string response = ViewsResponse) =>
         new FakeGraylog()
-            .OnJson(HttpMethod.Post, "/api/views/search/messages", response)
+            .OnJson(HttpMethod.Post, "/api/views/search/sync", response)
             .OnJson(HttpMethod.Get, "/api/streams", StreamsCommandTests.StreamsJson);
 
     private static JsonNode Body(FakeGraylog graylog) =>
-        JsonNode.Parse(graylog.Requests.Single(r => r.Uri.AbsolutePath == "/api/views/search/messages").Body!)!;
+        JsonNode.Parse(graylog.Requests.Single(r => r.Uri.AbsolutePath == "/api/views/search/sync").Body!)!;
+
+    private static JsonNode Query(FakeGraylog graylog) => Body(graylog)["queries"]![0]!;
+
+    private static JsonNode MessageList(FakeGraylog graylog) => Query(graylog)["search_types"]![0]!;
+
+    private static string[] Strings(JsonNode? array) => [.. array!.AsArray().Select(item => item!.GetValue<string>())];
 
     [Fact]
     public async Task Search_PostsTheViewsRequest()
@@ -53,14 +55,21 @@ public class SearchCommandTests
             "--limit", "200", "--stream", "API Gateway", "--sort", "timestamp:asc");
 
         Assert.Equal(ExitCodes.Success, result.ExitCode);
-        var body = Body(graylog);
-        Assert.Equal("source:api AND http_status:>=500", body["query_string"]!["query_string"]!.GetValue<string>());
-        Assert.Equal("relative", body["timerange"]!["type"]!.GetValue<string>());
-        Assert.Equal(900, body["timerange"]!["range"]!.GetValue<long>());
-        Assert.Equal(200, body["limit"]!.GetValue<int>());
-        Assert.Equal(["timestamp", "source", "message"], body["fields_in_order"]!.AsArray().Select(f => f!.GetValue<string>()));
-        Assert.Equal(["5f0000000000000000000002"], body["streams"]!.AsArray().Select(s => s!.GetValue<string>()));
-        Assert.Equal("ASC", body["sort"]![0]!["order"]!.GetValue<string>());
+        var query = Query(graylog);
+        Assert.Equal("elasticsearch", query["query"]!["type"]!.GetValue<string>());
+        Assert.Equal("source:api AND http_status:>=500", query["query"]!["query_string"]!.GetValue<string>());
+        Assert.Equal("relative", query["timerange"]!["type"]!.GetValue<string>());
+        Assert.Equal(900, query["timerange"]!["range"]!.GetValue<long>());
+        Assert.Equal("or", query["filter"]!["type"]!.GetValue<string>());
+        Assert.Equal("stream", query["filter"]!["filters"]![0]!["type"]!.GetValue<string>());
+        Assert.Equal("5f0000000000000000000002", query["filter"]!["filters"]![0]!["id"]!.GetValue<string>());
+
+        var messages = MessageList(graylog);
+        Assert.Equal("messages", messages["type"]!.GetValue<string>());
+        Assert.Equal(200, messages["limit"]!.GetValue<int>());
+        Assert.Equal(["timestamp", "source", "message"], Strings(messages["fields"]));
+        Assert.Equal("timestamp", messages["sort"]![0]!["field"]!.GetValue<string>());
+        Assert.Equal("ASC", messages["sort"]![0]!["order"]!.GetValue<string>());
 
         var post = graylog.Requests.Single(r => r.Method == HttpMethod.Post);
         Assert.Equal("glq", post.Headers[GraylogClient.RequestedByHeader]);
@@ -74,7 +83,7 @@ public class SearchCommandTests
 
         await host.RunAsync("search", "level:3", "--from", "2026-09-24T11:00:00", "--to", "2026-09-24T12:00:00+03:00", "--tz", "Europe/Athens");
 
-        var range = Body(graylog)["timerange"]!;
+        var range = Query(graylog)["timerange"]!;
         Assert.Equal("absolute", range["type"]!.GetValue<string>());
         Assert.Equal("2026-09-24T08:00:00.000Z", range["from"]!.GetValue<string>());
         Assert.Equal("2026-09-24T09:00:00.000Z", range["to"]!.GetValue<string>());
@@ -88,11 +97,10 @@ public class SearchCommandTests
 
         await host.RunAsync("search", "*");
 
-        var body = Body(graylog);
-        Assert.Equal(7200, body["timerange"]!["range"]!.GetValue<long>());
-        Assert.Equal(25, body["limit"]!.GetValue<int>());
-        Assert.Equal(["source"], body["fields_in_order"]!.AsArray().Select(f => f!.GetValue<string>()));
-        Assert.Equal(["5f0000000000000000000003"], body["streams"]!.AsArray().Select(s => s!.GetValue<string>()));
+        Assert.Equal(7200, Query(graylog)["timerange"]!["range"]!.GetValue<long>());
+        Assert.Equal(25, MessageList(graylog)["limit"]!.GetValue<int>());
+        Assert.Equal(["source"], Strings(MessageList(graylog)["fields"]));
+        Assert.Equal("5f0000000000000000000003", Query(graylog)["filter"]!["filters"]![0]!["id"]!.GetValue<string>());
     }
 
     [Fact]
@@ -103,11 +111,50 @@ public class SearchCommandTests
 
         await host.RunAsync("search", "*");
 
-        var body = Body(graylog);
-        Assert.Equal(300, body["timerange"]!["range"]!.GetValue<long>());
-        Assert.Equal(100, body["limit"]!.GetValue<int>());
-        Assert.Null(body["streams"]);
-        Assert.Equal("DESC", body["sort"]![0]!["order"]!.GetValue<string>());
+        Assert.Equal(300, Query(graylog)["timerange"]!["range"]!.GetValue<long>());
+        Assert.Equal(100, MessageList(graylog)["limit"]!.GetValue<int>());
+        Assert.Equal("DESC", MessageList(graylog)["sort"]![0]!["order"]!.GetValue<string>());
+        Assert.Null(Query(graylog)["filter"]);
+    }
+
+    [Fact]
+    public async Task Search_ReturnsTheServersOrder_AndOnlyTheRequestedFields()
+    {
+        using var host = HostWith(Views());
+
+        var result = await host.RunAsync("search", "*", "-o", "jsonl", "--fields", "source,customer_id");
+
+        var rows = result.Out.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(line => JsonNode.Parse(line)!).ToList();
+        Assert.Equal("payments", rows[0]["source"]!.GetValue<string>());
+        Assert.Null(rows[0]["customer_id"]);
+        Assert.Equal("C-1", rows[1]["customer_id"]!.GetValue<string>());
+        Assert.Null(rows[1]["message"]);
+    }
+
+    [Fact]
+    public async Task Search_ReportsAQueryGraylogCouldNotRun()
+    {
+        const string failed = """{"id":"j","results":{"q1":{"state":"ERROR","errors":[{"description":"Cannot parse 'source:('","type":"query"}],"search_types":{}}}}""";
+        using var host = HostWith(Views(failed));
+
+        var result = await host.RunAsync("search", "source:(");
+
+        Assert.Equal(ExitCodes.Api, result.ExitCode);
+        Assert.Contains("Cannot parse", result.Err);
+    }
+
+    [Fact]
+    public async Task Search_JsonFlag_IsAliasForOutputJson_AndRefusesAConflictingFormat()
+    {
+        using var host = HostWith(Views());
+
+        var json = await host.RunAsync("search", "*", "--json");
+        var conflict = await host.RunAsync("search", "*", "--json", "-o", "csv");
+
+        Assert.Equal(ExitCodes.Success, json.ExitCode);
+        Assert.IsType<JsonArray>(JsonNode.Parse(json.Out));
+        Assert.Equal(ExitCodes.Usage, conflict.ExitCode);
+        Assert.Contains("--json cannot be combined with --output csv", conflict.Err);
     }
 
     [Fact]
@@ -160,7 +207,7 @@ public class SearchCommandTests
         await host.RunAsync("search", "*", "--stream", "5f00000000000000000000aa");
 
         Assert.DoesNotContain(graylog.Requests, r => r.Uri.AbsolutePath == "/api/streams");
-        Assert.Equal("5f00000000000000000000aa", Body(graylog)["streams"]![0]!.GetValue<string>());
+        Assert.Equal("5f00000000000000000000aa", Query(graylog)["filter"]!["filters"]![0]!["id"]!.GetValue<string>());
     }
 
     [Fact]
@@ -175,7 +222,7 @@ public class SearchCommandTests
         Assert.Equal(ExitCodes.Success, first.ExitCode);
         Assert.Contains("legacy hit", first.Out);
         Assert.Equal(3, graylog.Requests.Count);
-        Assert.Equal("/api/views/search/messages", graylog.Requests[0].Uri.AbsolutePath);
+        Assert.Equal("/api/views/search/sync", graylog.Requests[0].Uri.AbsolutePath);
         var legacy = graylog.Requests[1].Uri;
         Assert.Equal("/api/search/universal/relative", legacy.AbsolutePath);
         Assert.Contains("range=3600", legacy.Query);
@@ -211,14 +258,14 @@ public class SearchCommandTests
 
         await host.RunAsync("search", "*");
 
-        Assert.DoesNotContain(graylog.Requests, r => r.Uri.AbsolutePath == "/api/views/search/messages");
+        Assert.DoesNotContain(graylog.Requests, r => r.Uri.AbsolutePath == "/api/views/search/sync");
     }
 
     [Fact]
     public async Task Search_ReportsAViewsApiError_WithoutFallingBack()
     {
         var graylog = new FakeGraylog().OnStatus(
-            HttpMethod.Post, "/api/views/search/messages", HttpStatusCode.NotFound, """{"type":"ApiError","message":"Stream not found"}""");
+            HttpMethod.Post, "/api/views/search/sync", HttpStatusCode.NotFound, """{"type":"ApiError","message":"Stream not found"}""");
         using var host = HostWith(graylog);
 
         var result = await host.RunAsync("search", "*");
@@ -232,7 +279,7 @@ public class SearchCommandTests
     public async Task Search_ReportsAQueryError_WithTheApiCode()
     {
         var graylog = new FakeGraylog().OnStatus(
-            HttpMethod.Post, "/api/views/search/messages", HttpStatusCode.BadRequest, """{"type":"ApiError","message":"Cannot parse 'source:('"}""");
+            HttpMethod.Post, "/api/views/search/sync", HttpStatusCode.BadRequest, """{"type":"ApiError","message":"Cannot parse 'source:('"}""");
         using var host = HostWith(graylog);
 
         var result = await host.RunAsync("search", "source:(");
@@ -244,7 +291,7 @@ public class SearchCommandTests
     [Fact]
     public async Task Search_ReportsForbidden_WithThePermissionHint()
     {
-        using var host = HostWith(new FakeGraylog().OnStatus(HttpMethod.Post, "/api/views/search/messages", HttpStatusCode.Forbidden));
+        using var host = HostWith(new FakeGraylog().OnStatus(HttpMethod.Post, "/api/views/search/sync", HttpStatusCode.Forbidden));
 
         var result = await host.RunAsync("search", "*");
 
@@ -253,7 +300,7 @@ public class SearchCommandTests
     }
 
     [Fact]
-    public async Task Search_MasksByDefault_InEveryFormat()
+    public async Task Search_PrintsValuesAsTheyAre_InEveryFormat()
     {
         foreach (var format in new[] { "table", "json", "jsonl", "csv" })
         {
@@ -263,42 +310,28 @@ public class SearchCommandTests
 
             Assert.Equal(ExitCodes.Success, result.ExitCode);
             Assert.Contains("api-gateway", result.Out);
-            Assert.DoesNotContain("jane.doe@example.com", result.Out);
-            Assert.DoesNotContain("4111111111111111", result.Out);
-            Assert.Contains("email_…", result.Out);
+            Assert.Contains("jane.doe@example.com", result.Out);
+            Assert.Contains("4111111111111111", result.Out);
         }
     }
 
     [Fact]
-    public async Task Search_NoMask_StillMasksCardNumbers()
+    public async Task Search_Raw_PrintsTheResponse()
     {
         using var host = HostWith(Views());
 
-        var result = await host.RunAsync("search", "*", "-o", "jsonl", "--no-mask");
-
-        Assert.Contains("jane.doe@example.com", result.Out);
-        Assert.DoesNotContain("4111111111111111", result.Out);
-        Assert.Contains("card_…", result.Out);
-    }
-
-    [Fact]
-    public async Task Search_Raw_PrintsTheResponse_Masked()
-    {
-        using var host = HostWith(Views());
-
-        var result = await host.RunAsync("search", "*", "--raw", "--no-mask");
+        var result = await host.RunAsync("search", "*", "--raw");
 
         Assert.Equal(ExitCodes.Success, result.ExitCode);
         var raw = JsonNode.Parse(result.Out)!;
-        Assert.NotNull(raw["schema"]);
+        Assert.NotNull(raw["results"]);
         Assert.Contains("jane.doe@example.com", result.Out);
-        Assert.DoesNotContain("4111111111111111", result.Out);
     }
 
     [Fact]
     public async Task Search_ZeroResults_IsSuccess()
     {
-        const string empty = """{"schema":[{"field":"timestamp"}],"datarows":[]}""";
+        const string empty = """{"id":"j","results":{"q1":{"state":"COMPLETE","errors":[],"search_types":{"st1":{"type":"messages","messages":[]}}}}}""";
         using var host = HostWith(Views(empty));
 
         var jsonl = await host.RunAsync("search", "nothing", "-o", "jsonl");

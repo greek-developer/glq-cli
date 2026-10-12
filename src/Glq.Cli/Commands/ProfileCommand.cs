@@ -30,20 +30,20 @@ internal static class ProfileCommand
         var production = new Option<bool>("--production") { Description = "Mark the target as production." };
         var noVerifyTls = new Option<bool>("--no-verify-tls") { Description = "Store verify_tls = false. Every run then warns." };
         var caBundle = new Option<string?>("--ca-bundle") { Description = "Path to a custom CA bundle (PEM)." };
+        var proxy = new Option<string?>("--proxy") { Description = "HTTP proxy for this profile, e.g. http://10.0.0.59:8888. Without it the system/env proxy applies." };
         var timeout = new Option<int?>("--timeout-seconds") { Description = "Per-request timeout (default 30)." };
         var tokenCommand = new Option<string?>("--token-command") { Description = "Shell command that prints the token, e.g. a password-manager CLI." };
         var defaultRange = new Option<string?>("--default-range") { Description = "Relative range used when a search gives none (default 5m)." };
         var defaultStream = new Option<string[]>("--default-stream") { Description = "Stream name or ID used when a search gives none. Repeatable." };
         var defaultLimit = new Option<int?>("--default-limit") { Description = "Result count used when a search gives none (default 100)." };
         var defaultFields = new Option<string?>("--default-fields") { Description = "Comma-separated fields used when a search gives none." };
-        var maskField = new Option<string[]>("--mask-field") { Description = "Extra field name to mask on this profile. Repeatable." };
         var use = new Option<bool>("--use") { Description = "Make it the current profile." };
         var force = new Option<bool>("--force") { Description = "Replace an existing profile of the same name." };
 
         var command = new Command("add", "Add a profile.")
         {
-            name, url, production, noVerifyTls, caBundle, timeout, tokenCommand, defaultRange, defaultStream,
-            defaultLimit, defaultFields, maskField, use, force,
+            name, url, production, noVerifyTls, caBundle, proxy, timeout, tokenCommand, defaultRange, defaultStream,
+            defaultLimit, defaultFields, use, force,
         };
 
         command.SetAction(parseResult =>
@@ -72,13 +72,13 @@ internal static class ProfileCommand
                 TokenCommand = command,
                 VerifyTls = parseResult.GetValue(noVerifyTls) ? false : null,
                 CaBundle = parseResult.GetValue(caBundle),
+                Proxy = ValidProxy(parseResult.GetValue(proxy)),
                 TimeoutSeconds = Positive(parseResult.GetValue(timeout), "--timeout-seconds"),
                 Production = parseResult.GetValue(production) ? true : null,
                 DefaultRange = range,
                 DefaultStreams = NullIfEmpty(parseResult.GetValue(defaultStream)),
                 DefaultLimit = Positive(parseResult.GetValue(defaultLimit), "--default-limit"),
                 DefaultFields = NullIfEmpty(SplitList(parseResult.GetValue(defaultFields))),
-                MaskFields = NullIfEmpty(parseResult.GetValue(maskField)),
             };
 
             if (parseResult.GetValue(use) || string.IsNullOrEmpty(config.CurrentProfile))
@@ -99,7 +99,8 @@ internal static class ProfileCommand
     private static Command List(CliContext context)
     {
         var output = Formatter.CreateOption();
-        var command = new Command("list", "List profiles; * marks the current one.") { output };
+        var json = Formatter.CreateJsonOption();
+        var command = new Command("list", "List profiles; * marks the current one.") { output, json };
         command.SetAction(parseResult =>
         {
             var config = context.Store.Load();
@@ -116,7 +117,7 @@ internal static class ProfileCommand
 
             Formatter.Write(
                 context.Out,
-                Formatter.Resolve(parseResult.GetValue(output), context.StdoutIsTerminal),
+                Formatter.Resolve(parseResult.GetValue(output), parseResult.GetValue(json), context.StdoutIsTerminal),
                 ["current", "name", "url", "production"],
                 rows);
             return ExitCodes.Success;
@@ -129,7 +130,8 @@ internal static class ProfileCommand
         var name = NameArgument();
         name.Arity = ArgumentArity.ZeroOrOne;
         var output = Formatter.CreateOption();
-        var command = new Command("show", "Show a profile's settings and where its token comes from - never the token.") { name, output };
+        var json = Formatter.CreateJsonOption();
+        var command = new Command("show", "Show a profile's settings and where its token comes from - never the token.") { name, output, json };
         command.SetAction(parseResult =>
         {
             var config = context.Store.Load();
@@ -146,17 +148,17 @@ internal static class ProfileCommand
                 ["token_source"] = TokenResolver.DescribeSource(context, profile),
                 ["verify_tls"] = profile.EffectiveVerifyTls,
                 ["ca_bundle"] = profile.CaBundle,
+                ["proxy"] = profile.Proxy,
                 ["timeout_seconds"] = profile.EffectiveTimeoutSeconds,
                 ["production"] = profile.IsProduction,
                 ["default_range"] = profile.EffectiveDefaultRange,
                 ["default_streams"] = new JsonArray([.. profile.EffectiveDefaultStreams.Select(s => (JsonNode?)s)]),
                 ["default_limit"] = profile.EffectiveDefaultLimit,
                 ["default_fields"] = new JsonArray([.. profile.EffectiveDefaultFields.Select(s => (JsonNode?)s)]),
-                ["mask_fields"] = new JsonArray([.. profile.EffectiveMaskFields.Select(s => (JsonNode?)s)]),
                 ["queries"] = profile.QueriesOrEmpty.Count,
             };
 
-            var format = Formatter.Resolve(parseResult.GetValue(output), context.StdoutIsTerminal);
+            var format = Formatter.Resolve(parseResult.GetValue(output), parseResult.GetValue(json), context.StdoutIsTerminal);
             if (format is OutputFormat.Table)
             {
                 foreach (var (key, value) in settings)
@@ -275,6 +277,9 @@ internal static class ProfileCommand
 
     private static int? Positive(int? value, string option) =>
         value is null or > 0 ? value : throw GlqException.Usage($"{option} must be greater than zero.");
+
+    private static string? ValidProxy(string? value) =>
+        value is null ? null : Client.GraylogConnection.ParseProxy(value).AbsoluteUri.TrimEnd('/');
 
     internal static string[] SplitList(string? value) =>
         value is null ? [] : value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);

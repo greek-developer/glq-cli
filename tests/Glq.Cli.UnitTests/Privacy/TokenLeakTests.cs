@@ -15,10 +15,10 @@ public class TokenLeakTests
     private static FakeGraylog EchoingGraylog() => new FakeGraylog()
         .OnJson(HttpMethod.Get, "/api/system", $$"""{"version":"6.1.2","note":"{{TestHost.Token}}"}""")
         .OnJson(HttpMethod.Get, "/api/streams", $$"""{"streams":[{"id":"5f0000000000000000000002","title":"API","description":"{{TestHost.Token}}"}]}""")
-        .OnJson(HttpMethod.Post, "/api/views/search/messages", $$"""
-            {"schema":[{"field":"timestamp"},{"field":"message"}],
-             "datarows":[["2026-09-24T08:00:00Z","auth header was Basic {{Credentials}} for {{TestHost.Token}}"]]}
-            """);
+        .OnJson(HttpMethod.Post, "/api/views/search/sync", """
+            {"id":"j","results":{"q1":{"state":"COMPLETE","errors":[],"search_types":{"st1":{"type":"messages","messages":[
+              {"message":{"timestamp":"2026-09-24T08:00:00Z","message":"auth header was Basic <<CREDENTIALS>> for <<TOKEN>>"}}]}}}}}
+            """.Replace("<<CREDENTIALS>>", Credentials).Replace("<<TOKEN>>", TestHost.Token));
 
     private static IEnumerable<string[]> CommandSurface(string queryFile) =>
     [
@@ -38,7 +38,7 @@ public class TokenLeakTests
         ["search", "*", "-o", "csv"],
         ["search", "*", "-o", "table"],
         ["search", "*", "--raw", "--verbose"],
-        ["search", "*", "--raw", "--no-mask"],
+        ["search", "*", "--raw"],
         ["search", "*", "--stream", "API"],
         ["query", "save", "q", "source:{{service}}", "--range", "1h"],
         ["query", "list", "-o", "json"],

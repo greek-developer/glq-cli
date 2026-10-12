@@ -58,7 +58,7 @@ shell session.
 | `glq profile remove <name>` | Removes a profile, its token and its own saved searches (asks first; `--yes` skips) |
 
 `profile add` also takes `--default-range`, `--default-stream`, `--default-limit`,
-`--default-fields`, `--mask-field`, `--timeout-seconds`, `--ca-bundle` and
+`--default-fields`, `--proxy`, `--timeout-seconds`, `--ca-bundle` and
 `--token-command`.
 
 ### Getting the token from a password manager
@@ -91,7 +91,7 @@ glq search 'message:"payment declined"' --stream Payments --fields timestamp,sou
 | `--limit` | How many messages (default 100, at most `max_limit`, 10,000 unless changed) |
 | `--sort` | `field:asc` or `field:desc` (default `timestamp:desc`) |
 | `-o` | `table` (default on a terminal), `jsonl` (default when piped), `json` or `csv` |
-| `--raw` | The untransformed Graylog response, for debugging — still masked |
+| `--raw` | The untransformed Graylog response, for debugging |
 
 ## Saved searches
 
@@ -138,7 +138,6 @@ Everything lives in one file: `~/.grdev.glq-cli/config.json` (`glq config path` 
   "current_profile": "staging",
   "max_limit": 10000,
   "confirm_limit": 1000,
-  "mask_fields": ["email", "phone", "username", "customer_id", "user_id", "ip", "card*"],
   "queries": {
     "api-5xx": { "query": "source:api-gateway AND http_status:>=500", "range": "15m" }
   },
@@ -174,10 +173,12 @@ Everything lives in one file: `~/.grdev.glq-cli/config.json` (`glq config path` 
 - **TLS.** Certificates are always verified. For an internal CA, set `ca_bundle` to a PEM
   file. `--insecure` or `"verify_tls": false` turns verification off and prints a warning
   on every run — avoid it.
-- **Masking.** Emails, phone numbers and the fields in `mask_fields` (top-level and
-  per-profile) are replaced with stable pseudonyms such as `cust_…a91f`: the same value
-  always masks the same way, so you can still follow one customer across rows. `--no-mask`
-  turns this off. **Card numbers are masked always**, `--no-mask` or not.
+- **Proxy.** If Graylog is only reachable through a proxy, add the profile with
+  `--proxy http://host:port` (stored as `proxy`). It applies to that profile only; without it
+  the system or `HTTPS_PROXY` environment proxy is used.
+- **Personal data.** Results are printed exactly as Graylog returns them — nothing is
+  masked. Production profiles print a notice, and large production runs need `--yes`. Use
+  a least-privilege token and treat the output as sensitive.
 - **Production.** On a profile with `"production": true`, every command that talks to
   Graylog prints `querying PRODUCTION Graylog — results may contain personal data`, and a
   search or saved-search run with `--limit` above `confirm_limit` (default 1,000) asks for

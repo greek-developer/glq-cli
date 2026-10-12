@@ -13,8 +13,6 @@ profiles, their tokens, and stored queries ([stored-queries.md](stored-queries.m
   "current_profile": "staging",
   "max_limit": 10000,
   "confirm_limit": 1000,
-  "mask_fields": ["email", "phone", "username", "customer_id", "user_id", "ip", "card*"],
-  "mask_salt": "…generated on first use…",
   "queries": { "api-5xx": { "query": "source:api-gateway AND http_status:>=500", "range": "15m" } },
   "profiles": {
     "staging": {
@@ -39,8 +37,6 @@ A misspelt or unknown key is a configuration error, not a silently ignored setti
 | `current_profile` | — | The profile used when neither `--profile` nor `GLQ_PROFILE` is given |
 | `max_limit` | `10000` | The hard maximum for `--limit` |
 | `confirm_limit` | `1000` | Above this `--limit`, a production run needs confirmation — see [privacy.md](privacy.md) |
-| `mask_fields` | see [privacy.md](privacy.md) | Field names masked on every profile |
-| `mask_salt` | generated | The masking salt |
 | `queries` | `{}` | Shared stored queries |
 | `profiles` | `{}` | The profiles, by name |
 
@@ -54,13 +50,13 @@ A misspelt or unknown key is a configuration error, not a silently ignored setti
 | `token_command` | — | Shell command that prints the token, e.g. a password-manager CLI |
 | `verify_tls` | `true` | TLS certificate verification |
 | `ca_bundle` | — | Path to a custom CA bundle |
+| `proxy` | — | `http(s)` URL of a proxy for this profile's requests, e.g. `http://10.0.0.59:8888`. Without it the system/environment proxy applies |
 | `timeout_seconds` | `30` | Per-request timeout |
 | `production` | `false` | Marks a production target — see [privacy.md](privacy.md) |
 | `default_range` | `5m` | Relative range used when a search gives none |
 | `default_streams` | `[]` | Stream names or IDs used when a search gives none |
 | `default_limit` | `100` | Result count used when a search gives none |
 | `default_fields` | narrow built-in set | Fields used when a search gives none |
-| `mask_fields` | `[]` | Extra field names to mask — see [privacy.md](privacy.md) |
 | `queries` | `{}` | Stored queries that belong to this profile only |
 
 The profile's name is its key under `profiles`.
@@ -69,7 +65,7 @@ The profile's name is its key under `profiles`.
 
 | Command | Does |
 |---|---|
-| `glq profile add <name> --url <url> [options]` | Adds a profile — the first one added becomes current. Options set the fields above: `--production`, `--no-verify-tls`, `--ca-bundle`, `--timeout-seconds`, `--token-command`, `--default-range`, `--default-stream` (repeatable), `--default-limit`, `--default-fields`, `--mask-field` (repeatable); `--use` makes it current, `--force` replaces an existing profile. A plain `http` URL is accepted with a warning that the token crosses the network unencrypted |
+| `glq profile add <name> --url <url> [options]` | Adds a profile — the first one added becomes current. Options set the fields above: `--production`, `--no-verify-tls`, `--ca-bundle`, `--proxy`, `--timeout-seconds`, `--token-command`, `--default-range`, `--default-stream` (repeatable), `--default-limit`, `--default-fields`; `--use` makes it current, `--force` replaces an existing profile. A plain `http` URL is accepted with a warning that the token crosses the network unencrypted |
 | `glq profile list` | Lists profiles, marking the current one |
 | `glq profile show <name>` | Prints the profile's settings and **where** its token comes from (config, env, or command) — never the token |
 | `glq profile use <name>` | Sets `current_profile` |

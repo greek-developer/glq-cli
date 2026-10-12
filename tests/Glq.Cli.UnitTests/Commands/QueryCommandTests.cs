@@ -9,11 +9,11 @@ public class QueryCommandTests
         var host = new TestHost
         {
             Graylog = graylog ?? new FakeGraylog()
-                .OnJson(HttpMethod.Post, "/api/views/search/messages", SearchCommandTests.ViewsResponse)
+                .OnJson(HttpMethod.Post, "/api/views/search/sync", SearchCommandTests.ViewsResponse)
                 .OnJson(HttpMethod.Get, "/api/streams", StreamsCommandTests.StreamsJson),
         };
         host.WriteConfig($$"""
-            { "current_profile": "dev", "mask_salt": "salt",
+            { "current_profile": "dev",
               "profiles": {
                 "dev": { "url": "https://graylog.dev", "token": "{{TestHost.Token}}" {{profileExtras}} },
                 "prod": { "url": "https://graylog.prod", "token": "{{TestHost.Token}}", "production": true } } }
@@ -133,10 +133,10 @@ public class QueryCommandTests
 
         Assert.Equal(ExitCodes.Success, result.ExitCode);
         var body = LastBody(host);
-        Assert.Equal("source:\"payments api\" AND level:<=3", body["query_string"]!["query_string"]!.GetValue<string>());
-        Assert.Equal(3600, body["timerange"]!["range"]!.GetValue<long>());
-        Assert.Equal(50, body["limit"]!.GetValue<int>());
-        Assert.Equal("5f0000000000000000000003", body["streams"]![0]!.GetValue<string>());
+        Assert.Equal("source:\"payments api\" AND level:<=3", body["queries"]![0]!["query"]!["query_string"]!.GetValue<string>());
+        Assert.Equal(3600, body["queries"]![0]!["timerange"]!["range"]!.GetValue<long>());
+        Assert.Equal(50, body["queries"]![0]!["search_types"]![0]!["limit"]!.GetValue<int>());
+        Assert.Equal("5f0000000000000000000003", body["queries"]![0]!["filter"]!["filters"]![0]!["id"]!.GetValue<string>());
     }
 
     [Fact]
@@ -148,8 +148,8 @@ public class QueryCommandTests
         await host.RunAsync("query", "run", "q", "--from", "2026-09-24T08:00:00Z", "--to", "2026-09-24T09:00:00Z", "--limit", "10");
 
         var body = LastBody(host);
-        Assert.Equal("absolute", body["timerange"]!["type"]!.GetValue<string>());
-        Assert.Equal(10, body["limit"]!.GetValue<int>());
+        Assert.Equal("absolute", body["queries"]![0]!["timerange"]!["type"]!.GetValue<string>());
+        Assert.Equal(10, body["queries"]![0]!["search_types"]![0]!["limit"]!.GetValue<int>());
         Assert.Equal("1h", host.ReadConfig().Queries!["q"].Range);
         Assert.Equal(50, host.ReadConfig().Queries!["q"].Limit);
     }

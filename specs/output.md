@@ -11,7 +11,10 @@
 | `jsonl` | stdout is redirected or piped | One JSON object per line |
 | `csv` | — | Header row of the selected fields, then one row per message |
 
-Masking ([privacy.md](privacy.md)) applies identically to every format.
+`--json` is shorthand for `-o json`, on every command that has `-o`. Combining it with a
+different `-o` format is a usage error (exit code `1`).
+
+Results are printed as Graylog returns them, identically in every format.
 
 ## Streams of output
 
