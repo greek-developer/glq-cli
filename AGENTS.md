@@ -274,7 +274,7 @@ git merge --ff-only <commit>
 
 | Rule | Detail |
 |---|---|
-| Fast-forward only | Use `--ff-only`. If the release branch can't fast-forward to the commit, it has deviated from `develop` (see below) — stop and raise it rather than merging or forcing |
+| Fast-forward only | Use `--ff-only`. If the release branch can't fast-forward to the commit, it has deviated from `develop` after a hotfix — reconcile it as described under [Hotfixes](#hotfixes--per-deployment-commits), never by merging |
 | Only `develop` commits | Release only commits that are on `develop`. Never commit to a release branch directly |
 | Promote in order | Promote the commit that is already on the previous environment; production is promoted from `uat`, `uat` from `staging` |
 
@@ -284,6 +284,20 @@ Cherry-picking is the exception, reserved for special cases such as hotfixes. Wh
 must go out without the other commits waiting on `develop`, **cherry-pick that specific
 commit onto the release branch**. The release branch is then allowed to deviate from
 `develop`, and from that point it no longer fast-forwards from it.
+
+**Reconciling a deviated branch.** The deviation is temporary. Bring the release branch back
+in line by **force-resetting it to a commit on `develop`** — normally as part of the next
+release, since that commit already contains the fix as its own `develop` commit:
+
+```powershell
+git switch release/production
+git reset --hard <commit>
+git push --force-with-lease origin release/production
+```
+
+This is the one place a force push to a release branch is expected. Use
+`--force-with-lease`, and check that the commit you reset to contains every fix the branch
+carries — a reset discards whatever it does not.
 
 **Fixes still start on `develop`.** Commit the fix to `develop` first, then cherry-pick it
 onto each release branch that needs it.
